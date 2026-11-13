@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Lỗi cơ sở dữ liệu | DrowsyGuard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
+  </head>
+  <body>
+    <main class="site-shell narrow">
+      <section class="site-card">
+        <h1>Không thể tải dữ liệu</h1>
+        <p class="notice error">{{ message }}</p>
+        <p><a href="">Thử lại</a> · <a href="{{ url_for('home') }}">Trang chủ</a></p>
+      </section>
+    </main>
+  </body>
+</html>

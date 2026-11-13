@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Lịch sử giám sát | DrowsyGuard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
+  </head>
+  <body>
+    <main class="site-shell">
+      <header class="site-header">
+        <a href="/">DrowsyGuard</a>
+        <nav><a href="{{ url_for('monitor.monitor') }}">Giám sát</a><a href="{{ url_for('history.history') }}">Lịch sử</a>{% if current_user.role == "Admin" %}<a href="{{ url_for('admin.dashboard') }}">Thống kê</a>{% endif %}<a href="{{ url_for('auth.logout') }}">Đăng xuất</a></nav>
+      </header>
+      <section class="site-card">
+        <h1>Lịch sử phiên giám sát</h1>
+        {% if error %}<p class="notice error">{{ error }} <a href="{{ url_for('history.history') }}">Thử lại</a></p>
+        {% elif not sessions %}<p>Chưa có phiên nào. Bắt đầu giám sát để tạo phiên đầu tiên.</p>
+        {% else %}
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Bắt đầu (UTC)</th><th>Kết thúc (UTC)</th><th>Trạng thái cuối</th><th>Số cảnh báo</th><th></th></tr></thead>
+              <tbody>
+                {% for session in sessions %}
+                  <tr>
+                    <td>{{ session.ThoiGianBatDau }}</td>
+                    <td>{{ session.ThoiGianKetThuc or "Đang chạy" }}</td>
+                    <td>{{ session.TrangThai }}</td>
+                    <td>{{ session.SoLanCanhBao }}</td>
+                    <td><a href="{{ url_for('history.history_detail', session_id=session.MaPhien) }}">Chi tiết</a></td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+      </section>
+    </main>
+  </body>
+</html>

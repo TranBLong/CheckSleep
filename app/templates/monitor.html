@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Giám sát | DrowsyGuard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='monitor.css') }}">
+  </head>
+  <body data-state="UNKNOWN">
+    <main class="monitor-shell">
+      <header class="page-header">
+        <a class="brand" href="/">DrowsyGuard</a>
+        {% if current_user.role == "Admin" %}<a href="{{ url_for('admin.dashboard') }}">Thống kê quản trị</a>{% endif %}
+        <span class="support-note">Công cụ hỗ trợ cảnh báo, không thay thế nghỉ ngơi an toàn.</span>
+      </header>
+
+      <section id="loading-panel" class="panel center-panel" aria-live="polite">
+        <span class="spinner" aria-hidden="true"></span>
+        <h1>Đang tải trạng thái giám sát…</h1>
+      </section>
+
+      <section id="error-panel" class="panel center-panel" role="alert" hidden>
+        <p class="eyebrow">CẦN KIỂM TRA</p>
+        <h1 id="error-message">Không thể tải trạng thái.</h1>
+        <button id="retry-button" class="button button-primary" type="button">Thử lại</button>
+      </section>
+
+      <section id="empty-panel" class="panel" hidden>
+        <p class="eyebrow">GIÁM SÁT TẠI THIẾT BỊ</p>
+        <h1>Chưa bắt đầu phiên</h1>
+        <p class="large-copy">Camera chỉ mở sau khi bạn đồng ý và nhấn Bắt đầu.</p>
+        <div class="privacy-notice">
+          <strong>Quyền riêng tư</strong>
+          <p>Hình ảnh được xử lý trực tiếp trong bộ nhớ trên thiết bị này. Video không được lưu.</p>
+          <label class="consent-row">
+            <input id="privacy-consent" type="checkbox">
+            <span>Tôi đã đọc thông báo và đồng ý bật camera để giám sát.</span>
+          </label>
+        </div>
+        <button id="start-button" class="button button-primary button-large" type="button" disabled>
+          Bắt đầu giám sát
+        </button>
+      </section>
+
+      <section id="data-panel" class="panel" hidden>
+        <div class="status-heading">
+          <div>
+            <p class="eyebrow">TRẠNG THÁI TÀI XẾ</p>
+            <h1 id="state-label">Không xác định</h1>
+          </div>
+          <span id="level-badge" class="level-badge" hidden></span>
+        </div>
+        <p id="status-message" class="status-message" aria-live="polite"></p>
+
+        <div id="calibration-panel" class="calibration-panel" hidden>
+          <span class="spinner" aria-hidden="true"></span>
+          <div>
+            <strong>Đang hiệu chỉnh cá nhân</strong>
+            <p>Ngồi thẳng, mở mắt, nhìn thẳng.</p>
+          </div>
+          <span id="countdown" class="countdown">5</span>
+        </div>
+
+        <div class="video-wrap">
+          <img id="video" alt="Hình ảnh camera trực tiếp, chỉ xử lý trong bộ nhớ" hidden>
+          <p id="video-placeholder">Hình camera sẽ xuất hiện khi phiên bắt đầu.</p>
+        </div>
+        <label class="overlay-toggle">
+          <input id="overlay-toggle" type="checkbox">
+          Hiện khung khuôn mặt
+        </label>
+
+        <div class="metrics" aria-label="Chỉ số hiện tại">
+          <div><span>EAR</span><strong id="ear-value">—</strong></div>
+          <div><span>MAR</span><strong id="mar-value">—</strong></div>
+          <div><span>PERCLOS</span><strong id="perclos-value">—</strong></div>
+          <div><span>Pitch</span><strong id="pitch-value">—</strong></div>
+          <div><span>FPS</span><strong id="fps-value">—</strong></div>
+        </div>
+        <p id="partial-note" class="partial-note" hidden>Dữ liệu một phần — một số chỉ số không khả dụng.</p>
+        <div class="actions">
+          <button id="ack-button" class="button button-secondary" type="button" hidden>Xác nhận cảnh báo</button>
+          <button id="stop-button" class="button button-danger" type="button">Dừng giám sát</button>
+        </div>
+      </section>
+    </main>
+
+    <audio id="audio-level-1" preload="auto" src="{{ url_for('static', filename='audio/level-1.wav') }}"></audio>
+    <audio id="audio-level-2" preload="auto" src="{{ url_for('static', filename='audio/level-2.wav') }}"></audio>
+    <audio id="audio-level-3" preload="auto" loop src="{{ url_for('static', filename='audio/level-3.wav') }}"></audio>
+    <script src="{{ url_for('static', filename='monitor.js') }}" defer></script>
+  </body>
+</html>

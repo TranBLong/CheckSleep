@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Chi tiết phiên | DrowsyGuard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
+  </head>
+  <body>
+    <main class="site-shell">
+      <header class="site-header">
+        <a href="/">DrowsyGuard</a>
+        <nav><a href="{{ url_for('history.history') }}">Lịch sử</a>{% if current_user.role == "Admin" %}<a href="{{ url_for('admin.dashboard') }}">Thống kê</a>{% endif %}<a href="{{ url_for('auth.logout') }}">Đăng xuất</a></nav>
+      </header>
+      <section class="site-card">
+        <h1>Chi tiết phiên</h1>
+        <p><a href="{{ url_for('history.history') }}">← Quay lại lịch sử</a></p>
+        {% if error %}<p class="notice error">{{ error }} <a href="">Thử lại</a></p>{% endif %}
+        {% if session %}
+          <dl class="summary">
+            <dt>Thời gian bắt đầu (UTC)</dt><dd>{{ session.ThoiGianBatDau }}</dd>
+            <dt>Thời gian kết thúc (UTC)</dt><dd>{{ session.ThoiGianKetThuc or "Đang chạy" }}</dd>
+            <dt>Trạng thái cuối</dt><dd>{{ session.TrangThai }}</dd>
+            <dt>Số cảnh báo</dt><dd>{{ session.SoLanCanhBao }}</dd>
+            <dt>EAR0 / MAR0 / Pitch0</dt><dd>{{ session.EAR0 or "—" }} / {{ session.MAR0 or "—" }} / {{ session.Pitch0 or "—" }}</dd>
+          </dl>
+          <h2>Lịch sử cảnh báo</h2>
+          {% if not alerts %}<p>Chưa có cảnh báo trong phiên này.</p>
+          {% else %}
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Thời gian (UTC)</th><th>Mức</th><th>Dấu hiệu</th><th>EAR</th><th>MAR</th><th>PERCLOS</th><th>Pitch</th></tr></thead>
+                <tbody>
+                  {% for alert in alerts %}
+                    <tr>
+                      <td>{{ alert.ThoiGian }}</td><td>{{ alert.MucCanhBao }}</td><td>{{ alert.DauHieu }}</td>
+                      <td>{{ alert.GiaTriEAR or "—" }}</td><td>{{ alert.GiaTriMAR or "—" }}</td>
+                      <td>{{ alert.GiaTriPERCLOS or "—" }}</td><td>{{ alert.GiaTriPitch or "—" }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% endif %}
+        {% endif %}
+      </section>
+    </main>
+  </body>
+</html>

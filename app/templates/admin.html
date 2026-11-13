@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Thống kê quản trị | DrowsyGuard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
+  </head>
+  <body>
+    <main class="site-shell">
+      <header class="site-header">
+        <a href="/">DrowsyGuard</a>
+        <nav>
+          <a href="{{ url_for('monitor.monitor') }}">Giám sát</a>
+          <a href="{{ url_for('history.history') }}">Lịch sử</a>
+          <a href="{{ url_for('admin.dashboard') }}">Thống kê</a>
+          <a href="{{ url_for('auth.logout') }}">Đăng xuất</a>
+        </nav>
+      </header>
+      <section class="site-card">
+        <h1>Thống kê quản trị</h1>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% for category, message in messages %}
+            <p class="notice {{ 'error' if category == 'error' else 'success' }}">{{ message }}</p>
+          {% endfor %}
+        {% endwith %}
+        {% if error %}
+          <p class="notice error">{{ error }} <a href="{{ url_for('admin.dashboard') }}">Thử lại</a></p>
+        {% elif dashboard %}
+          <dl class="summary">
+            <dt>Tổng tài khoản</dt><dd>{{ dashboard.total_accounts }}</dd>
+            <dt>Tổng phiên giám sát</dt><dd>{{ dashboard.total_sessions }}</dd>
+            <dt>Tổng cảnh báo</dt><dd>{{ dashboard.total_alerts }}</dd>
+            <dt>Cảnh báo mức 1</dt><dd>{{ dashboard.alerts_by_level[1] }}</dd>
+            <dt>Cảnh báo mức 2</dt><dd>{{ dashboard.alerts_by_level[2] }}</dd>
+            <dt>Cảnh báo mức 3</dt><dd>{{ dashboard.alerts_by_level[3] }}</dd>
+          </dl>
+          <h2>Quản lý tài khoản</h2>
+          {% if not dashboard.accounts %}
+            <p>Chưa có tài khoản.</p>
+          {% else %}
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr><th>Tên đăng nhập</th><th>Họ tên</th><th>Điện thoại</th><th>Vai trò</th><th>Trạng thái</th><th>Thao tác</th></tr>
+                </thead>
+                <tbody>
+                  {% for account in dashboard.accounts %}
+                    <tr>
+                      <td>{{ account.TenDangNhap }}</td>
+                      <td>{{ account.HoTen }}</td>
+                      <td>{{ account.SoDienThoai or "—" }}</td>
+                      <td>{{ account.VaiTro }}</td>
+                      <td>{{ "Đã khóa" if account.BiKhoa else "Hoạt động" }}</td>
+                      <td>
+                        {% if account.BiKhoa %}
+                          <form class="inline-form" method="post" action="{{ url_for('admin.change_account_lock', user_id=account.MaND, action='unlock') }}">
+                            <button type="submit">Mở khóa</button>
+                          </form>
+                        {% else %}
+                          <form class="inline-form" method="post" action="{{ url_for('admin.change_account_lock', user_id=account.MaND, action='lock') }}">
+                            <button type="submit" {% if account.VaiTro == "Admin" and account.MaND|string == current_user.id %}disabled title="Không thể tự khóa tài khoản Admin hiện tại"{% endif %}>Khóa</button>
+                          </form>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            <p class="help-text">Không thể khóa Admin hiện tại hoặc Admin cuối cùng còn hoạt động.</p>
+          {% endif %}
+        {% endif %}
+      </section>
+    </main>
+  </body>
+</html>

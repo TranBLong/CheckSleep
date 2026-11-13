@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Đăng ký | DrowsyGuard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
+  </head>
+  <body>
+    <main class="site-shell narrow">
+      <header class="site-header"><a href="/">DrowsyGuard</a></header>
+      <section class="site-card">
+        <h1>Đăng ký Driver</h1>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% for category, message in messages %}<p class="notice {{ category }}">{{ message }}</p>{% endfor %}
+        {% endwith %}
+        <form method="post">
+          <label>Họ tên<input name="full_name" autocomplete="name" required></label>
+          <label>Tên đăng nhập<input name="username" autocomplete="username" maxlength="50" required></label>
+          <label>Số điện thoại (không bắt buộc)<input name="phone" type="tel" autocomplete="tel" maxlength="20"></label>
+          <label>Mật khẩu (ít nhất 8 ký tự)<input name="password" type="password" autocomplete="new-password" minlength="8" required></label>
+          <button type="submit">Tạo tài khoản</button>
+        </form>
+        <p>Đã có tài khoản? <a href="{{ url_for('auth.login') }}">Đăng nhập</a></p>
+      </section>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,8 @@
+Flask
+Flask-Login
+pyodbc
+python-dotenv
+pytest
+opencv-python==4.11.0.86
+mediapipe==0.10.21
+tensorflow
