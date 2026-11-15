@@ -1,11 +1,13 @@
 """Live webcam preview for face landmarks, EAR, and MAR; no recording."""
 
+from pathlib import Path
 from time import monotonic
 
 import cv2
 
-from config import CAMERA_INDEX, DEMO_CONSOLE_INTERVAL_SECONDS
+from config import CAMERA_INDEX, CNN_EYE_CROP_PADDING_RATIO, DEMO_CONSOLE_INTERVAL_SECONDS
 from core.camera import QuanLyCamera
+from core.classifier import extract_eye_crops
 from core.face import FaceLandmarkDetector
 from core.metrics import (
     INNER_MOUTH_LANDMARK_INDICES,
@@ -18,6 +20,17 @@ LANDMARK_GROUPS = (
     RIGHT_EYE_LANDMARK_INDICES,
     INNER_MOUTH_LANDMARK_INDICES,
 )
+
+
+def _save_eye_crops(frame, landmarks, out_dir: Path, index: int) -> None:
+    """Save local eye crops for visual inspection; files stay on this machine."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for eye_index, crop in enumerate(
+        extract_eye_crops(
+            frame, landmarks, padding_ratio=CNN_EYE_CROP_PADDING_RATIO
+        )
+    ):
+        cv2.imwrite(str(out_dir / f"eye_{index:04d}_{eye_index}.png"), crop)
 
 
 def _draw_landmark_groups(frame, landmarks) -> None:
@@ -70,8 +83,16 @@ def main() -> None:
                         (0, 255, 0),
                         2,
                     )
-                    cv2.imshow("DrowsyGuard - landmark demo (Q de thoat)", frame)
-                    if cv2.waitKey(1) & 0xFF == ord("q"):
+                    cv2.imshow("DrowsyGuard - landmark demo (S luu crop, Q thoat)", frame)
+                    key = cv2.waitKey(1) & 0xFF
+                    if key in (ord("s"), ord("S")) and result.landmarks is not None:
+                        _save_eye_crops(
+                            frame,
+                            result.landmarks,
+                            Path("instance/debug_eye_crops"),
+                            int(now * 1000) % 10000,
+                        )
+                    if key in (ord("q"), ord("Q"), 27):
                         break
     finally:
         cv2.destroyAllWindows()

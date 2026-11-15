@@ -128,7 +128,10 @@ def monitor_status():
             error=None,
             message="Chưa có phiên giám sát.",
         )
-    return jsonify(_pipeline().snapshot())
+    pipeline = _pipeline()
+    if is_active and active_user_id == int(current_user.id):
+        pipeline.touch()
+    return jsonify(pipeline.snapshot())
 
 
 @monitor_bp.post("/api/ack")

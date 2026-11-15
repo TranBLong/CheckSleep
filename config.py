@@ -55,13 +55,17 @@ DEFAULT_DRIVER_CONFIG = {
 
 CAMERA_INDEX = 0
 DEMO_CONSOLE_INTERVAL_SECONDS = 1.0
+# Tự dừng phiên nếu /api/status không được gọi (tab đóng, mất mạng).
+CLIENT_HEARTBEAT_TIMEOUT_SECONDS = 15.0
 FACE_DETECTION_MODEL_SELECTION = 0
 FACE_DETECTION_MIN_CONFIDENCE = 0.5
 FACE_MESH_MAX_NUM_FACES = 5
 FACE_MESH_MIN_DETECTION_CONFIDENCE = 0.5
 FACE_MESH_MIN_TRACKING_CONFIDENCE = 0.5
 
-DRIVER_SEAT_ROI = (0.0, 0.0, 0.5, 1.0)
+# Webcam laptop thường mặt ở giữa khung. Khi lắp camera trong xe, thu hẹp
+# về nửa ghế lái, ví dụ (0.0, 0.0, 0.5, 1.0) hoặc ROI thực tế sau hiệu chỉnh.
+DRIVER_SEAT_ROI = (0.0, 0.0, 1.0, 1.0)
 FACE_NMS_IOU_THRESHOLD = 0.45
 DRIVER_TRACKING_IOU_THRESHOLD = 0.3
 DRIVER_SELECTION_CENTER_WEIGHT = 0.6
@@ -79,6 +83,8 @@ FEATURE_ROI_PADDING_RATIO = 1.5
 CLASSIFIER_MODE = "baseline"
 CNN_EYE_CLOSED_THRESHOLD = 0.5
 CNN_MOUTH_YAWN_THRESHOLD = 0.5
+# Padding crop mắt gần với ảnh MRL (cắt sát); miệng giữ 1.5 như lúc train.
+CNN_EYE_CROP_PADDING_RATIO = 0.4
 EYE_TFLITE_MODEL_PATH = Path(__file__).resolve().parent / "models" / "eye_classifier.tflite"
 MOUTH_TFLITE_MODEL_PATH = Path(__file__).resolve().parent / "models" / "mouth_classifier.tflite"
-CNN_USE_MOUTH_MODEL = True
+CNN_USE_MOUTH_MODEL = False  # Model miệng mức 2; bật khi đã có mouth_classifier.tflite

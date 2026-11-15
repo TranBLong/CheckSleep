@@ -21,6 +21,7 @@ class FakePipeline:
             "alert_level": None,
             "error": None,
         }
+        self.touches = 0
 
     def start(self, session_id=None):
         self.status.update(session_started=True, running=True)
@@ -32,6 +33,9 @@ class FakePipeline:
 
     def snapshot(self):
         return dict(self.status)
+
+    def touch(self):
+        self.touches += 1
 
     def acknowledge(self):
         return dict(self.status)
@@ -223,6 +227,7 @@ def test_monitor_shows_privacy_notice_without_starting_pipeline():
 
     response = client.get("/monitor")
     status = client.get("/api/status").get_json()
+    assert app.extensions["drowsyguard_pipeline"].touches == 0
 
     assert response.status_code == 200
     assert "Video không được lưu".encode() in response.data
@@ -235,6 +240,9 @@ def test_monitor_api_starts_stops_and_acknowledges():
 
     assert client.post("/api/start").status_code == 400
     assert client.post("/api/start", json={"consent": True}).status_code == 202
+    pipeline = app.extensions["drowsyguard_pipeline"]
+    assert client.get("/api/status").status_code == 200
+    assert pipeline.touches == 1
     assert client.post("/api/ack").status_code == 200
     response = client.post("/api/stop")
 

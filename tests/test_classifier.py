@@ -48,7 +48,10 @@ class FakeInterpreter:
         self.closed = True
 
 
-def test_tflite_classifier_returns_probabilities_for_both_eyes_and_mouth(tmp_path):
+def test_tflite_classifier_returns_probabilities_for_both_eyes_and_mouth(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr("core.classifier.CNN_USE_MOUTH_MODEL", True)
     eye_path = tmp_path / "eye.tflite"
     mouth_path = tmp_path / "mouth.tflite"
     eye_path.touch()

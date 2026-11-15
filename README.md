@@ -110,7 +110,7 @@ ORDER BY c.ThoiGian DESC;
 
 ### Xác định khuôn mặt tài xế
 
-Detector xử lý tối đa số khuôn mặt đặt trong `config.py`, sau đó dùng NMS và tracker IoU để khóa khuôn mặt tài xế. ROI ghế lái mặc định là nửa trái khung hình; chỉnh `DRIVER_SEAT_ROI` nếu vị trí hoặc hướng camera khác. Mất khóa quá 3 giây chuyển sang `UNKNOWN` và yêu cầu hiệu chỉnh lại. Nhận diện vô lăng chưa được bật; không cần cài YOLO/Ultralytics.
+Detector xử lý tối đa số khuôn mặt đặt trong `config.py`, sau đó dùng NMS và tracker IoU để khóa khuôn mặt tài xế. ROI ghế lái mặc định là toàn khung `(0, 0, 1, 1)`, phù hợp webcam laptop với mặt ở giữa. Khi lắp camera trong xe, thu hẹp `DRIVER_SEAT_ROI` (ví dụ nửa trái `(0.0, 0.0, 0.5, 1.0)`). Mất khóa quá 3 giây chuyển sang `UNKNOWN` và yêu cầu hiệu chỉnh lại. Nhận diện vô lăng chưa được bật; không cần cài YOLO/Ultralytics.
 
 Chất lượng khung hình được kiểm tra bằng độ sáng trung bình và phương sai Laplacian; ngưỡng và tùy chọn CLAHE nằm trong `config.py`. CLAHE mặc định tắt. Vùng mắt/miệng được kiểm tra cục bộ; chỉ số không đủ chất lượng bị bỏ và giao diện báo dữ liệu một phần. Ngưỡng là giá trị khởi điểm, cần hiệu chỉnh với camera thực tế.
 
@@ -118,7 +118,9 @@ Chất lượng khung hình được kiểm tra bằng độ sáng trung bình v
 
 Đặt project tại `MyDrive/DrowsyGuard`, tải và giải nén MRL Eye/YawDD thủ công vào Drive, rồi mở `ml/train_eye_cnn.ipynb` và `ml/train_mouth_cnn.ipynb` bằng Colab. Notebook không tải dataset; hãy kiểm tra cấu hình parser nhãn/subject trước khi chạy. YawDD cần map rõ video ngáp/không ngáp và subject ID; notebook dừng nếu không xác định được. Kết quả được đánh giá trên test split theo người và xuất thành `models/eye_classifier.tflite`, `models/mouth_classifier.tflite`. Chưa có model hoặc số đo thực tế trong repo.
 
-Ứng dụng mặc định dùng baseline EAR/MAR. Để dùng CNN, cài TensorFlow theo `requirements.txt`, đặt hai model đã huấn luyện trong `models/` và đổi `CLASSIFIER_MODE = "cnn"` trong `config.py`. Nếu thiếu/không nạp được model, pipeline báo lỗi rõ ràng thay vì tự fallback.
+Ứng dụng mặc định dùng baseline EAR/MAR. Để dùng CNN, cài TensorFlow theo `requirements.txt`, đặt `models/eye_classifier.tflite` và đổi `CLASSIFIER_MODE = "cnn"` trong `config.py`. Model miệng là tùy chọn: chỉ cần `models/mouth_classifier.tflite` khi `CNN_USE_MOUTH_MODEL = True` (mặc định `False`). Nếu thiếu/không nạp được model bắt buộc, pipeline báo lỗi rõ ràng thay vì tự fallback.
+
+Trong demo landmark, nhấn `S` để lưu crop hai mắt vào `instance/debug_eye_crops/` nhằm kiểm tra trực quan trên máy cục bộ; nhấn `Q` để thoát. Crop mắt dùng `CNN_EYE_CROP_PADDING_RATIO` trong `config.py`.
 
 ### Đo hiệu năng bằng video
 

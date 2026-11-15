@@ -165,3 +165,47 @@ def test_state_machine_rejects_timestamp_that_moves_backwards():
 
     with pytest.raises(ValueError, match="move backwards"):
         machine.update(1.0, _metrics(), has_face=True, quality_ok=True)
+
+
+def test_temporal_windows_reset_after_each_real_deescalation():
+    """Combine the real temporal tracker and state machine for the downgrade path."""
+    from config import STATE_DEESCALATION_NORMAL_DURATION_SECONDS
+    from core.temporal import BoTheoDoiThoiGian
+
+    tracker = BoTheoDoiThoiGian(pitch0=0.0)
+    machine = MayTrangThai()
+    severity = {
+        TrangThai.UNKNOWN: -1,
+        TrangThai.ALERT: 0,
+        TrangThai.FATIGUED: 1,
+        TrangThai.DROWSY: 2,
+        TrangThai.ASLEEP: 3,
+    }
+    previous = TrangThai.UNKNOWN
+    transitions = []
+    timestamp = 0.0
+    end = 4 * STATE_DEESCALATION_NORMAL_DURATION_SECONDS + 70.0
+
+    while timestamp <= end:
+        eyes_closed = timestamp < 2.1
+        metrics = tracker.update(
+            timestamp, eyes_closed, False, 0.0, valid=True
+        )
+        state = machine.update(
+            timestamp, metrics, has_face=True, quality_ok=True
+        )
+        if severity[state] < severity[previous] and state != TrangThai.UNKNOWN:
+            transitions.append(state)
+            tracker.reset_windows()
+            assert not tracker._eye_samples
+            assert not tracker._long_blinks
+            assert not tracker._nods
+        previous = state
+        timestamp += 0.1
+
+    assert transitions == [
+        TrangThai.DROWSY,
+        TrangThai.FATIGUED,
+        TrangThai.ALERT,
+    ]
+    assert state == TrangThai.ALERT

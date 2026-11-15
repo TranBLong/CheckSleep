@@ -21,7 +21,7 @@ def _candidate(box, ear=0.3, confidence=0.9):
 
 
 def test_selector_chooses_only_a_face_inside_driver_roi():
-    selector = BoXacDinhTaiXe()
+    selector = BoXacDinhTaiXe(roi=(0.0, 0.0, 0.5, 1.0))
     driver = _candidate((0.08, 0.2, 0.34, 0.6), ear=0.31)
     larger_passenger = _candidate((0.58, 0.1, 0.98, 0.8), ear=0.05)
 

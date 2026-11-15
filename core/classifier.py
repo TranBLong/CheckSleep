@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 
 from config import (
+    CNN_EYE_CROP_PADDING_RATIO,
     CNN_USE_MOUTH_MODEL,
     EYE_TFLITE_MODEL_PATH,
     MOUTH_TFLITE_MODEL_PATH,
@@ -157,12 +158,16 @@ class MoHinhPhatHien:
 
 
 def extract_eye_crops(
-    frame: np.ndarray, landmarks: Sequence[Landmark]
+    frame: np.ndarray,
+    landmarks: Sequence[Landmark],
+    padding_ratio: float = CNN_EYE_CROP_PADDING_RATIO,
 ) -> tuple[np.ndarray, ...]:
     """Crop both eye regions for independent inference."""
     crops = []
     for indices in (LEFT_EYE_LANDMARK_INDICES, RIGHT_EYE_LANDMARK_INDICES):
-        crop = crop_landmark_region(frame, landmarks, indices)
+        crop = crop_landmark_region(
+            frame, landmarks, indices, padding_ratio=padding_ratio
+        )
         if crop is not None:
             crops.append(crop)
     return tuple(crops)

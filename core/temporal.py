@@ -55,6 +55,12 @@ class BoTheoDoiThoiGian:
         self._nod_since: float | None = None
         self._nods: deque[float] = deque()
 
+    def reset_windows(self) -> None:
+        """Đặt lại cửa sổ 60 s khi hạ mức; giữ cửa sổ ngáp dài."""
+        self._eye_samples.clear()
+        self._long_blinks.clear()
+        self._nods.clear()
+
     def update(
         self,
         timestamp_seconds: float,

@@ -12,6 +12,7 @@ import cv2
 from config import (
     CALIBRATION_DURATION_SECONDS,
     CLASSIFIER_MODE,
+    CLIENT_HEARTBEAT_TIMEOUT_SECONDS,
     CNN_EYE_CLOSED_THRESHOLD,
     CNN_MOUTH_YAWN_THRESHOLD,
     CNN_USE_MOUTH_MODEL,
@@ -97,6 +98,7 @@ class DieuKhienGiamSat:
         self._alerts = BoDieuKhienCanhBao()
         self._session_id: int | None = None
         self._highest_state = TrangThai.UNKNOWN
+        self._last_client_status_at: float | None = None
         self._status = self._empty_status()
 
     def start(self, session_id: int | None = None) -> bool:
@@ -112,6 +114,7 @@ class DieuKhienGiamSat:
             self._calibration = None
             self._session_id = session_id
             self._highest_state = TrangThai.UNKNOWN
+            self._last_client_status_at = None
             self._alerts = BoDieuKhienCanhBao()
             self._alert_sequence = 0
             self._status = self._empty_status()
@@ -144,6 +147,11 @@ class DieuKhienGiamSat:
         """Return a thread-safe copy of the latest public status."""
         with self._lock:
             return dict(self._status)
+
+    def touch(self) -> None:
+        """Record that the owning browser is still polling session status."""
+        with self._lock:
+            self._last_client_status_at = self._clock()
 
     def acknowledge(self) -> dict:
         """Acknowledge the currently active alert without muting level three."""
@@ -218,7 +226,10 @@ class DieuKhienGiamSat:
                         error=error,
                         message=f"Không thể tiếp tục giám sát: {error}",
                     )
-                elif not self._status["error"]:
+                elif (
+                    not self._status["error"]
+                    and "mất kết nối trình duyệt" not in self._status["message"].lower()
+                ):
                     self._status["message"] = "Đã dừng giám sát."
                 session_id = self._session_id
                 summary = {
@@ -244,6 +255,7 @@ class DieuKhienGiamSat:
         calibration = BoHieuChinhCaNhan()
         smoothers = (MovingAverage(), MovingAverage(), MovingAverage())
         state_machine = MayTrangThai()
+        previous_state = TrangThai.UNKNOWN
         alerts = BoDieuKhienCanhBao()
         with self._lock:
             self._alerts = alerts
@@ -254,6 +266,19 @@ class DieuKhienGiamSat:
         calibration_retry_pending = False
         driver_selector = BoXacDinhTaiXe()
         while not self._stop_event.is_set():
+            with self._lock:
+                last_heartbeat = self._last_client_status_at
+            if (
+                last_heartbeat is not None
+                and self._clock() - last_heartbeat
+                > CLIENT_HEARTBEAT_TIMEOUT_SECONDS
+            ):
+                with self._lock:
+                    self._status["message"] = (
+                        "Phiên dừng do mất kết nối trình duyệt."
+                    )
+                self._stop_event.set()
+                break
             source_frame = camera.read()
             if source_frame is None:
                 return
@@ -280,9 +305,19 @@ class DieuKhienGiamSat:
                 and result.has_face
                 and result.landmarks is not None
             ):
+                eye_crops = (
+                    extract_eye_crops(frame, result.landmarks)
+                    if result.ear is not None
+                    else ()
+                )
+                mouth_crop = (
+                    extract_mouth_crop(frame, result.landmarks)
+                    if result.mar is not None
+                    else None
+                )
                 model_result = classifier.predict(
-                    extract_eye_crops(frame, result.landmarks),
-                    extract_mouth_crop(frame, result.landmarks),
+                    eye_crops,
+                    mouth_crop,
                 )
 
             if selection is not None:
@@ -297,6 +332,7 @@ class DieuKhienGiamSat:
                 self._calibration = None
                 temporal = None
                 state_machine.reset()
+                previous_state = TrangThai.UNKNOWN
                 for smoother in smoothers:
                     smoother.reset()
                 with self._lock:
@@ -368,6 +404,7 @@ class DieuKhienGiamSat:
                     calibration_started_at = timestamp
                     calibration_retry_pending = True
                     state_machine.reset()
+                    previous_state = TrangThai.UNKNOWN
                     with self._lock:
                         self._status.update(
                             state=TrangThai.UNKNOWN.value,
@@ -402,31 +439,28 @@ class DieuKhienGiamSat:
                     timestamp, None, None, None, valid=False
                 )
             else:
-                eyes_closed = (
-                    model_result.eye_closed_probability >= CNN_EYE_CLOSED_THRESHOLD
-                    if classifier is not None
-                    and model_result.eye_closed_probability is not None
-                    else (
-                        None
-                        if classifier is not None
-                        else (
-                            measured.ear < self._calibration.ear_closed_threshold
-                            if measured.ear is not None
-                            else None
-                        )
+                if classifier is not None:
+                    eyes_closed = (
+                        model_result.eye_closed_probability
+                        >= CNN_EYE_CLOSED_THRESHOLD
+                        if measured.ear is not None
+                        and model_result.eye_closed_probability is not None
+                        else None
                     )
-                )
-                if (
-                    classifier is not None
-                    and CNN_USE_MOUTH_MODEL
-                    and model_result.mouth_yawn_probability is not None
-                ):
+                else:
+                    eyes_closed = (
+                        measured.ear < self._calibration.ear_closed_threshold
+                        if measured.ear is not None
+                        else None
+                    )
+                if classifier is not None and CNN_USE_MOUTH_MODEL:
                     mouth_yawn = (
                         model_result.mouth_yawn_probability
                         >= CNN_MOUTH_YAWN_THRESHOLD
+                        if measured.mar is not None
+                        and model_result.mouth_yawn_probability is not None
+                        else None
                     )
-                elif classifier is not None and CNN_USE_MOUTH_MODEL:
-                    mouth_yawn = None
                 else:
                     mouth_yawn = (
                         measured.mar > self._calibration.mar_yawn_threshold
@@ -446,6 +480,13 @@ class DieuKhienGiamSat:
                 has_face=has_face,
                 quality_ok=True,
             )
+            if (
+                temporal is not None
+                and _STATE_SEVERITY[state] < _STATE_SEVERITY[previous_state]
+                and state != TrangThai.UNKNOWN
+            ):
+                temporal.reset_windows()
+            previous_state = state
             alert = alerts.evaluate(timestamp, state)
             with self._lock:
                 if _STATE_SEVERITY[state] > _STATE_SEVERITY[self._highest_state]:

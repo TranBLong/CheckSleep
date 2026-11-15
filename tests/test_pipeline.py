@@ -59,6 +59,24 @@ def _wait_for(predicate, timeout=2.0):
     return predicate()
 
 
+def _valid_landmarks():
+    landmarks = [(0.5, 0.5, 0.0) for _ in range(478)]
+    for index, point in {
+        362: (0.3, 0.4, 0.0), 385: (0.35, 0.35, 0.0),
+        387: (0.4, 0.35, 0.0), 263: (0.45, 0.4, 0.0),
+        373: (0.4, 0.45, 0.0), 380: (0.35, 0.45, 0.0),
+        33: (0.5, 0.4, 0.0), 160: (0.55, 0.35, 0.0),
+        158: (0.6, 0.35, 0.0), 133: (0.65, 0.4, 0.0),
+        153: (0.6, 0.45, 0.0), 144: (0.55, 0.45, 0.0),
+        78: (0.35, 0.6, 0.0), 81: (0.4, 0.58, 0.0),
+        13: (0.5, 0.57, 0.0), 311: (0.6, 0.58, 0.0),
+        308: (0.65, 0.6, 0.0), 402: (0.6, 0.62, 0.0),
+        14: (0.5, 0.63, 0.0), 178: (0.4, 0.62, 0.0),
+    }.items():
+        landmarks[index] = point
+    return tuple(landmarks)
+
+
 def test_pipeline_opens_camera_only_after_start_and_releases_it():
     opened = Event()
     processed = Event()
@@ -137,13 +155,13 @@ def test_pipeline_calibrates_from_driver_face_only_when_two_faces_are_present():
     opened = Event()
     closed = Event()
     driver = FaceCandidate(
-        bounding_box=(0.08, 0.2, 0.34, 0.6),
+        bounding_box=(0.3, 0.2, 0.7, 0.6),
         result=KetQuaPhatHien(
             has_face=True, ear=0.31, mar=0.2, pitch=0.0, confidence=0.9
         ),
     )
     passenger = FaceCandidate(
-        bounding_box=(0.58, 0.1, 0.98, 0.8),
+        bounding_box=(0.86, 0.1, 0.99, 0.8),
         result=KetQuaPhatHien(
             has_face=True, ear=0.05, mar=0.8, pitch=-50.0, confidence=0.9
         ),
@@ -331,6 +349,77 @@ def test_pipeline_cnn_eye_only_uses_mar_and_does_not_mark_partial(monkeypatch):
     assert snap["mouth_yawn_probability"] is None
     assert snap["partial_data"] is False
     assert pipeline.stop()
+
+
+@pytest.mark.parametrize("occluded_feature", ["eyes", "mouth", "both"])
+def test_pipeline_cnn_does_not_classify_occluded_features(occluded_feature):
+    opened = Event()
+    closed = Event()
+    classified = Event()
+    landmarks = _valid_landmarks()
+    expected_eye_crops = 0 if occluded_feature in {"eyes", "both"} else 2
+    expected_mouth_crop = occluded_feature not in {"mouth", "both"}
+
+    class OccludedDetector:
+        def process(self, _frame):
+            return KetQuaPhatHien(
+                has_face=True,
+                ear=None if occluded_feature in {"eyes", "both"} else 0.3,
+                mar=None if occluded_feature in {"mouth", "both"} else 0.2,
+                pitch=0.0,
+                landmarks=landmarks,
+            )
+
+        def close(self):
+            pass
+
+    class OcclusionClassifier:
+        def predict(self, eye_crops, mouth_crop):
+            assert len(eye_crops) == expected_eye_crops
+            assert (mouth_crop is not None) is expected_mouth_crop
+            classified.set()
+            # High scores must not override missing geometric measurements.
+            return KetQuaMoHinh(0.99, 0.99)
+
+        def close(self):
+            pass
+
+    pipeline = DieuKhienGiamSat(
+        camera_factory=lambda: FakeCamera(opened, closed),
+        detector_factory=OccludedDetector,
+        clock=AdvancingClock(),
+        classifier_mode="cnn",
+        classifier_factory=OcclusionClassifier,
+    )
+
+    assert pipeline.start()
+    assert classified.wait(1)
+    assert pipeline.snapshot()["state"] != "ASLEEP"
+    assert pipeline.stop()
+
+
+def test_pipeline_stops_when_client_heartbeat_times_out():
+    from config import CLIENT_HEARTBEAT_TIMEOUT_SECONDS
+
+    opened = Event()
+    closed = Event()
+    processed = Event()
+    clock_value = {"value": 0.0}
+    pipeline = DieuKhienGiamSat(
+        camera_factory=lambda: FakeCamera(opened, closed),
+        detector_factory=lambda: FakeDetector(processed),
+        clock=lambda: clock_value["value"],
+    )
+
+    assert pipeline.start(session_id=1)
+    assert opened.wait(1)
+    assert processed.wait(1)
+    pipeline.touch()
+    clock_value["value"] += CLIENT_HEARTBEAT_TIMEOUT_SECONDS + 0.1
+
+    assert _wait_for(lambda: not pipeline.snapshot()["running"])
+    assert closed.is_set()
+    assert "mất kết nối trình duyệt" in pipeline.snapshot()["message"]
 
 
 def test_pipeline_persists_emitted_alert_and_highest_session_state():
