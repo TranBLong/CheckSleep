@@ -130,6 +130,19 @@ Benchmark chạy pipeline trên video cục bộ đã ghi (không lưu lại khu
 
 FPS là tốc độ xử lý đo được trên máy hiện tại; độ trễ là theo trục thời gian của video. Nếu không có cảnh báo sau mốc đã đánh dấu, kết quả độ trễ là `N/A`. Không dùng benchmark thay cho xác nhận thực nghiệm an toàn; ghi kịch bản và kết quả vào [docs/TEST_PLAN.md](./docs/TEST_PLAN.md).
 
+### Đánh giá mắt nhắm: baseline EAR và CNN
+
+So sánh trên video cục bộ với CSV nhãn thủ công; khung hình chỉ được xử lý trong bộ nhớ. Baseline dùng `EAR < EYES_CLOSED_EAR_BASELINE_RATIO × EAR0`; CNN dùng `P(nhắm) >= CNN_EYE_CLOSED_THRESHOLD`. Cần model mắt TFLite; cần thêm model miệng khi `CNN_USE_MOUTH_MODEL = True`. CSV gồm `start_seconds,end_seconds,label`, trong đó nhãn là `open` hoặc `closed`; các khoảng không được chồng lấn và khung ngoài khoảng nhãn bị bỏ qua. Nên để mắt mở trong khoảng hiệu chỉnh đầu video.
+
+```powershell
+.\.venv\Scripts\python.exe scripts\evaluate.py path\to\local-video.mp4 `
+  --labels path\to\eye_labels.csv `
+  --output-dir path\to\eval_out `
+  --calibration-seconds 5
+```
+
+Lệnh in Precision/Recall/F1 cho lớp mắt nhắm, Accuracy, ROC-AUC và FPS; đồng thời ghi `metrics.json` và `metrics.csv` vào thư mục đầu ra. Đây là số đo trên video, máy và nhãn được cung cấp, không phải kết quả đã đo sẵn trong repo.
+
 ### Integration tests
 
 Service integration tests are skipped unless `TEST_DB_*` is explicitly configured. They require a separate SQL Server database whose `TEST_DB_NAME` contains `test` and differs from `DB_NAME`. Create its schema using the steps above, then set the test login values in the local `.env`. Tests never fall back to `DB_*`; do not point `TEST_DB_*` at a database containing application data.
