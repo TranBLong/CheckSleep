@@ -277,6 +277,62 @@ def test_pipeline_uses_cnn_probabilities_when_cnn_mode_is_selected():
     assert pipeline.stop()
 
 
+def test_pipeline_cnn_eye_only_uses_mar_and_does_not_mark_partial(monkeypatch):
+    monkeypatch.setattr("core.pipeline.CNN_USE_MOUTH_MODEL", False)
+    opened = Event()
+    closed = Event()
+    classified = Event()
+
+    landmarks = [(0.5, 0.5, 0.0)] * 478
+    for index, point in {
+        33: (0.5, 0.4, 0.0), 160: (0.55, 0.35, 0.0),
+        158: (0.6, 0.35, 0.0), 133: (0.65, 0.4, 0.0),
+        153: (0.6, 0.45, 0.0), 144: (0.55, 0.45, 0.0),
+        362: (0.3, 0.4, 0.0), 385: (0.35, 0.35, 0.0),
+        387: (0.4, 0.35, 0.0), 263: (0.45, 0.4, 0.0),
+        373: (0.4, 0.45, 0.0), 380: (0.35, 0.45, 0.0),
+        78: (0.35, 0.6, 0.0), 81: (0.4, 0.58, 0.0),
+        13: (0.5, 0.57, 0.0), 311: (0.6, 0.58, 0.0),
+        308: (0.65, 0.6, 0.0), 402: (0.6, 0.62, 0.0),
+        14: (0.5, 0.63, 0.0), 178: (0.4, 0.62, 0.0),
+    }.items():
+        landmarks[index] = point
+
+    class LandmarkDetector:
+        def process(self, _frame):
+            return KetQuaPhatHien(
+                has_face=True, ear=0.3, mar=0.9, pitch=0.0,
+                landmarks=tuple(landmarks),
+            )
+
+        def close(self):
+            pass
+
+    class EyeOnlyClassifier:
+        def predict(self, eye_crops, mouth_crop):
+            classified.set()
+            return KetQuaMoHinh(eye_closed_probability=0.2, mouth_yawn_probability=None)
+
+        def close(self):
+            pass
+
+    pipeline = DieuKhienGiamSat(
+        camera_factory=lambda: FakeCamera(opened, closed),
+        detector_factory=LandmarkDetector,
+        clock=AdvancingClock(),
+        classifier_mode="cnn",
+        classifier_factory=EyeOnlyClassifier,
+    )
+
+    assert pipeline.start()
+    assert classified.wait(1)
+    assert _wait_for(lambda: pipeline.snapshot()["eye_closed_probability"] == 0.2)
+    snap = pipeline.snapshot()
+    assert snap["mouth_yawn_probability"] is None
+    assert snap["partial_data"] is False
+    assert pipeline.stop()
+
+
 def test_pipeline_persists_emitted_alert_and_highest_session_state():
     opened = Event()
     closed = Event()

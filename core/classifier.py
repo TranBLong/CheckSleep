@@ -7,7 +7,11 @@ from typing import Any, Sequence
 import cv2
 import numpy as np
 
-from config import EYE_TFLITE_MODEL_PATH, MOUTH_TFLITE_MODEL_PATH
+from config import (
+    CNN_USE_MOUTH_MODEL,
+    EYE_TFLITE_MODEL_PATH,
+    MOUTH_TFLITE_MODEL_PATH,
+)
 from core.metrics import (
     INNER_MOUTH_LANDMARK_INDICES,
     LEFT_EYE_LANDMARK_INDICES,
@@ -35,8 +39,11 @@ class MoHinhPhatHien:
         self._eye_interpreter = self._load_interpreter(
             eye_model_path, "eye", interpreter_factory
         )
-        self._mouth_interpreter = self._load_interpreter(
-            mouth_model_path, "mouth", interpreter_factory
+        self._use_mouth_model = CNN_USE_MOUTH_MODEL
+        self._mouth_interpreter = (
+            self._load_interpreter(mouth_model_path, "mouth", interpreter_factory)
+            if self._use_mouth_model
+            else None
         )
 
     @staticmethod
@@ -99,7 +106,7 @@ class MoHinhPhatHien:
                 )
         mouth_probability = (
             self._predict_one(self._mouth_interpreter, mouth_crop)
-            if mouth_crop is not None
+            if self._use_mouth_model and mouth_crop is not None
             else None
         )
         return KetQuaMoHinh(eye_probability, mouth_probability)
@@ -142,6 +149,8 @@ class MoHinhPhatHien:
 
     def close(self) -> None:
         for interpreter in (self._eye_interpreter, self._mouth_interpreter):
+            if interpreter is None:
+                continue
             close = getattr(interpreter, "close", None)
             if close is not None:
                 close()

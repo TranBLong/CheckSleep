@@ -14,6 +14,7 @@ from config import (
     CLASSIFIER_MODE,
     CNN_EYE_CLOSED_THRESHOLD,
     CNN_MOUTH_YAWN_THRESHOLD,
+    CNN_USE_MOUTH_MODEL,
 )
 from core.alert import BoDieuKhienCanhBao
 from core.calibration import BoHieuChinhCaNhan, KetQuaHieuChinh
@@ -415,20 +416,23 @@ class DieuKhienGiamSat:
                         )
                     )
                 )
-                mouth_yawn = (
-                    model_result.mouth_yawn_probability >= CNN_MOUTH_YAWN_THRESHOLD
-                    if classifier is not None
+                if (
+                    classifier is not None
+                    and CNN_USE_MOUTH_MODEL
                     and model_result.mouth_yawn_probability is not None
-                    else (
-                        None
-                        if classifier is not None
-                        else (
-                            measured.mar > self._calibration.mar_yawn_threshold
-                            if measured.mar is not None
-                            else None
-                        )
+                ):
+                    mouth_yawn = (
+                        model_result.mouth_yawn_probability
+                        >= CNN_MOUTH_YAWN_THRESHOLD
                     )
-                )
+                elif classifier is not None and CNN_USE_MOUTH_MODEL:
+                    mouth_yawn = None
+                else:
+                    mouth_yawn = (
+                        measured.mar > self._calibration.mar_yawn_threshold
+                        if measured.mar is not None
+                        else None
+                    )
                 temporal_result = temporal.update(
                     timestamp,
                     eyes_closed,
@@ -466,7 +470,10 @@ class DieuKhienGiamSat:
                             classifier is not None
                             and (
                                 model_result.eye_closed_probability is None
-                                or model_result.mouth_yawn_probability is None
+                                or (
+                                    CNN_USE_MOUTH_MODEL
+                                    and model_result.mouth_yawn_probability is None
+                                )
                             )
                         )
                     ),

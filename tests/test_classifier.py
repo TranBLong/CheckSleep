@@ -86,6 +86,42 @@ def test_tflite_classifier_reports_missing_model(tmp_path):
         MoHinhPhatHien(tmp_path / "missing-eye.tflite", tmp_path / "mouth.tflite")
 
 
+def test_classifier_skips_mouth_model_when_disabled(tmp_path, monkeypatch):
+    monkeypatch.setattr("core.classifier.CNN_USE_MOUTH_MODEL", False)
+    eye_path = tmp_path / "eye.tflite"
+    eye_path.touch()
+    created = []
+
+    def interpreter_factory(model_path):
+        created.append(model_path)
+        return FakeInterpreter(model_path, 0.3)
+
+    classifier = MoHinhPhatHien(
+        eye_path,
+        tmp_path / "mouth-missing.tflite",
+        interpreter_factory=interpreter_factory,
+    )
+    eye = np.full((16, 16, 3), 127, dtype=np.uint8)
+    result = classifier.predict((eye,), np.full((16, 16, 3), 64, dtype=np.uint8))
+
+    assert result.eye_closed_probability == pytest.approx(0.3)
+    assert result.mouth_yawn_probability is None
+    assert len(created) == 1
+    classifier.close()
+
+
+def test_classifier_still_requires_mouth_file_when_enabled(tmp_path, monkeypatch):
+    monkeypatch.setattr("core.classifier.CNN_USE_MOUTH_MODEL", True)
+    eye_path = tmp_path / "eye.tflite"
+    eye_path.touch()
+    with pytest.raises(FileNotFoundError, match="Không tìm thấy mô hình"):
+        MoHinhPhatHien(
+            eye_path,
+            tmp_path / "missing-mouth.tflite",
+            interpreter_factory=lambda model_path: FakeInterpreter(model_path, 0.3),
+        )
+
+
 def test_landmark_crop_helpers_return_eye_and_mouth_regions():
     landmarks = [(0.5, 0.5, 0.0)] * 478
     landmarks[362] = (0.3, 0.4, 0.0)

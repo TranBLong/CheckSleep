@@ -81,3 +81,4 @@ CNN_EYE_CLOSED_THRESHOLD = 0.5
 CNN_MOUTH_YAWN_THRESHOLD = 0.5
 EYE_TFLITE_MODEL_PATH = Path(__file__).resolve().parent / "models" / "eye_classifier.tflite"
 MOUTH_TFLITE_MODEL_PATH = Path(__file__).resolve().parent / "models" / "mouth_classifier.tflite"
+CNN_USE_MOUTH_MODEL = True
