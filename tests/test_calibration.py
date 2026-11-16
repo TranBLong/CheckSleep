@@ -91,3 +91,21 @@ def test_default_calibration_requires_thirty_valid_frames():
     result = calibration.finish(5.0)
 
     assert result.valid_frame_count == 30
+
+
+def test_has_valid_baseline_rejects_ear0_outside_range():
+    from config import CALIBRATION_EAR0_MAX, CALIBRATION_EAR0_MIN
+
+    calibration = BoHieuChinhCaNhan(duration_seconds=5, minimum_valid_frames=3)
+    calibration.start(0.0)
+    for t, ear in ((1.0, 0.45), (2.0, 0.50), (3.0, 0.55)):
+        calibration.add_sample(_result(ear=ear, mar=1.0, pitch=0.0), t)
+    assert calibration.has_minimum_samples
+    assert not calibration.has_valid_baseline
+
+    calibration_ok = BoHieuChinhCaNhan(duration_seconds=5, minimum_valid_frames=3)
+    calibration_ok.start(0.0)
+    for t, ear in ((1.0, 0.25), (2.0, 0.30), (3.0, 0.35)):
+        calibration_ok.add_sample(_result(ear=ear, mar=1.0, pitch=0.0), t)
+    assert calibration_ok.has_valid_baseline
+    assert CALIBRATION_EAR0_MIN <= 0.30 <= CALIBRATION_EAR0_MAX

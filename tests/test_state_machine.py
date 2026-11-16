@@ -85,7 +85,8 @@ def test_table_3_4_downgrades_one_step_each_thirty_normal_seconds():
     assert machine.update(91.0, normal, has_face=True, quality_ok=True) == TrangThai.ALERT
 
 
-def test_non_normal_indicator_resets_deescalation_timer():
+def test_non_normal_indicator_does_not_block_deescalation():
+    """Candidate FATIGUED khi đang ASLEEP vẫn cho phép hạ bậc sau 30 s."""
     machine = MayTrangThai()
     machine.update(
         0.0,
@@ -93,17 +94,22 @@ def test_non_normal_indicator_resets_deescalation_timer():
         has_face=True,
         quality_ok=True,
     )
-    machine.update(1.0, _metrics(), has_face=True, quality_ok=True)
-    machine.update(20.0, _metrics(perclos=10.0), has_face=True, quality_ok=True)
-
+    machine.update(1.0, _metrics(perclos=10.0), has_face=True, quality_ok=True)
     assert (
-        machine.update(50.0, _metrics(), has_face=True, quality_ok=True)
-        == TrangThai.ASLEEP
-    )
-    assert (
-        machine.update(80.0, _metrics(), has_face=True, quality_ok=True)
+        machine.update(31.0, _metrics(perclos=10.0), has_face=True, quality_ok=True)
         == TrangThai.DROWSY
     )
+
+
+def test_asleep_deescalates_step_by_step_when_candidate_stays_fatigued():
+    """ASLEEP → DROWSY → FATIGUED khi candidate FATIGUED liên tục mỗi 30 s."""
+    machine = MayTrangThai()
+    machine.update(0.0, _metrics(eyes_closed_asleep=True), has_face=True, quality_ok=True)
+    fatigued = _metrics(perclos=10.0)
+    assert machine.update(1.0, fatigued, has_face=True, quality_ok=True) == TrangThai.ASLEEP
+    assert machine.update(31.0, fatigued, has_face=True, quality_ok=True) == TrangThai.DROWSY
+    assert machine.update(61.0, fatigued, has_face=True, quality_ok=True) == TrangThai.FATIGUED
+    assert machine.update(91.0, fatigued, has_face=True, quality_ok=True) == TrangThai.FATIGUED
 
 
 def test_low_quality_immediately_sets_unknown_and_valid_data_recovers():

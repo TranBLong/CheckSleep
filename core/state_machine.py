@@ -92,17 +92,7 @@ class MayTrangThai:
             self._normal_since = None
             return self.state
 
-        if candidate != TrangThai.ALERT:
-            self._normal_since = None
-            if self.state == TrangThai.UNKNOWN:
-                self.state = candidate
-            return self.state
-
-        if self.state == TrangThai.UNKNOWN:
-            self.state = TrangThai.ALERT
-            self._normal_since = None
-            return self.state
-
+        # Candidate thấp hơn state: đếm thời gian bình thường rồi hạ từng bậc.
         if self._normal_since is None:
             self._normal_since = timestamp_seconds
         if (

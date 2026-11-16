@@ -133,9 +133,21 @@ def test_perclos_excludes_frames_where_eye_metric_is_occluded():
     _update(tracker, 0.0, eyes_closed=True)
     result = _update(tracker, 1.0, eyes_closed=None, mouth_yawn=False, pitch=0.0)
 
-    assert result.perclos_percent == pytest.approx(100.0)
+    assert result.perclos_percent is None
     assert result.partial_data
     assert result.has_valid_data
+
+
+def test_perclos_none_until_min_window_then_computes():
+    from config import PERCLOS_MIN_WINDOW_SECONDS
+
+    tracker = BoTheoDoiThoiGian(pitch0=0.0)
+    _update(tracker, 0.0, eyes_closed=True)
+    short = _update(tracker, 5.0, eyes_closed=False)
+    assert short.perclos_percent is None
+
+    mid = _update(tracker, PERCLOS_MIN_WINDOW_SECONDS, eyes_closed=False)
+    assert mid.perclos_percent == pytest.approx(1 / 3 * 100)
 
 
 def test_partial_face_data_keeps_available_metrics_and_invalid_face_is_unknown():

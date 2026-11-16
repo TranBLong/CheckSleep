@@ -6,6 +6,8 @@ from statistics import median
 
 from config import (
     CALIBRATION_DURATION_SECONDS,
+    CALIBRATION_EAR0_MAX,
+    CALIBRATION_EAR0_MIN,
     CALIBRATION_MIN_VALID_FRAMES,
     EYES_CLOSED_EAR_BASELINE_RATIO,
     HEAD_NOD_PITCH_DROP_DEGREES,
@@ -84,6 +86,14 @@ class BoHieuChinhCaNhan:
     @property
     def has_minimum_samples(self) -> bool:
         return len(self._samples) >= self._minimum_valid_frames
+
+    @property
+    def has_valid_baseline(self) -> bool:
+        """Đủ mẫu và EAR0 nằm trong khoảng hợp lệ."""
+        if not self.has_minimum_samples:
+            return False
+        ear0 = median(sample[0] for sample in self._samples)
+        return CALIBRATION_EAR0_MIN <= ear0 <= CALIBRATION_EAR0_MAX
 
     def finish(self, timestamp_seconds: float) -> KetQuaHieuChinh:
         """Return median baselines or report that calibration must be repeated."""

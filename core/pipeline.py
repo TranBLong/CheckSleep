@@ -398,7 +398,7 @@ class DieuKhienGiamSat:
                     )
                 if not calibration.is_complete(timestamp):
                     continue
-                if not calibration.has_minimum_samples:
+                if not calibration.has_valid_baseline:
                     calibration = BoHieuChinhCaNhan()
                     calibration.start(timestamp)
                     calibration_started_at = timestamp
@@ -534,18 +534,23 @@ class DieuKhienGiamSat:
                 and self._session_id is not None
                 and self._on_alert is not None
             ):
-                self._on_alert(
-                    self._session_id,
-                    {
-                        "level": alert.level,
-                        "state": state.value,
-                        "ear": measured.ear if measured else None,
-                        "mar": measured.mar if measured else None,
-                        "perclos": temporal_result.perclos_percent,
-                        "pitch": measured.pitch if measured else None,
-                        "confidence": measured.confidence if measured else None,
-                    },
-                )
+                try:
+                    self._on_alert(
+                        self._session_id,
+                        {
+                            "level": alert.level,
+                            "state": state.value,
+                            "ear": measured.ear if measured else None,
+                            "mar": measured.mar if measured else None,
+                            "perclos": temporal_result.perclos_percent,
+                            "pitch": measured.pitch if measured else None,
+                            "confidence": measured.confidence if measured else None,
+                        },
+                    )
+                except Exception:
+                    # Lỗi CSDL không được dừng vòng giám sát.
+                    with self._lock:
+                        self._status["message"] = "Không lưu được cảnh báo vào CSDL"
 
     @staticmethod
     def _smooth_result(

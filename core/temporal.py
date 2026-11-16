@@ -13,6 +13,7 @@ from config import (
     LONG_BLINK_COUNT_WINDOW_SECONDS,
     LONG_BLINK_MAX_DURATION_MS,
     LONG_BLINK_MIN_DURATION_MS,
+    PERCLOS_MIN_WINDOW_SECONDS,
     PERCLOS_WINDOW_SECONDS,
     YAWN_DROWSY_WINDOW_SECONDS,
     YAWN_FATIGUED_WINDOW_SECONDS,
@@ -218,7 +219,10 @@ class BoTheoDoiThoiGian:
             events.popleft()
 
     def _perclos_percent(self) -> float | None:
-        if not self._eye_samples:
+        if len(self._eye_samples) < 2:
+            return None
+        span = self._eye_samples[-1][0] - self._eye_samples[0][0]
+        if span < PERCLOS_MIN_WINDOW_SECONDS:
             return None
         closed_frames = sum(is_closed for _, is_closed in self._eye_samples)
         return closed_frames / len(self._eye_samples) * 100.0

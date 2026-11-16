@@ -462,3 +462,41 @@ def test_pipeline_persists_emitted_alert_and_highest_session_state():
     assert any(alert[1]["level"] == 3 for alert in saved_alerts)
     assert saved_sessions[0][0] == 42
     assert saved_sessions[0][1]["state"] == "ASLEEP"
+
+
+def test_pipeline_continues_when_on_alert_raises():
+    opened = Event()
+    closed = Event()
+    processed = Event()
+    call_count = {"n": 0}
+
+    class RaisingAlertDetector(FakeDetector):
+        def process(self, frame):
+            self.processed.set()
+            self.count = getattr(self, "count", 0) + 1
+            ear = 0.3 if self.count <= 55 else 0.05
+            return KetQuaPhatHien(has_face=True, ear=ear, mar=0.1, pitch=0.0)
+
+    def broken_on_alert(session_id, event):
+        call_count["n"] += 1
+        raise RuntimeError("SQL Server unavailable")
+
+    pipeline = DieuKhienGiamSat(
+        camera_factory=lambda: FakeCamera(opened, closed),
+        detector_factory=lambda: RaisingAlertDetector(processed),
+        clock=AdvancingClock(),
+        on_alert=broken_on_alert,
+    )
+
+    assert pipeline.start(session_id=7)
+    assert opened.wait(1)
+    assert processed.wait(1)
+    assert _wait_for(
+        lambda: call_count["n"] >= 1 and pipeline.snapshot()["running"] is True,
+        timeout=4.0,
+    )
+    status = pipeline.snapshot()
+    assert status["error"] is None
+    assert "Không lưu được cảnh báo vào CSDL" in (status["message"] or "")
+    assert pipeline.stop() is True
+    assert closed.is_set()
