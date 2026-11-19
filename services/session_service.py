@@ -66,6 +66,37 @@ class SessionService:
             )
             return rows_as_dicts(cursor, cursor.fetchall())
 
+    def get_session(self, session_id: int) -> dict | None:
+        """Đọc một phiên theo MaPhien (dùng cho script xuất)."""
+        with transaction(self._connection_factory) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT MaPhien, MaND, ThoiGianBatDau, ThoiGianKetThuc,
+                       TrangThai, SoLanCanhBao, EAR0, MAR0, Pitch0
+                FROM dbo.PhienGiamSat
+                WHERE MaPhien = ?
+                """,
+                session_id,
+            )
+            return row_as_dict(cursor, cursor.fetchone())
+
+    def list_metrics(self, session_id: int) -> list[dict]:
+        """Đọc toàn bộ SoLieuPhien của một phiên (script xuất)."""
+        with transaction(self._connection_factory) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT MaSoLieu, ThoiGian, EAR, MAR, PERCLOS, Pitch,
+                       TrangThai, DiemMetMoi
+                FROM dbo.SoLieuPhien
+                WHERE MaPhien = ?
+                ORDER BY ThoiGian ASC
+                """,
+                session_id,
+            )
+            return rows_as_dicts(cursor, cursor.fetchall())
+
     def get_for_user(self, session_id: int, user_id: int) -> dict | None:
         with transaction(self._connection_factory) as conn:
             cursor = conn.cursor()

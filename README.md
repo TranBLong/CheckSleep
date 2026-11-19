@@ -145,6 +145,38 @@ So sánh trên video cục bộ với CSV nhãn thủ công; khung hình chỉ �
 
 Lệnh in Precision/Recall/F1 cho lớp mắt nhắm, Accuracy, ROC-AUC và FPS; đồng thời ghi `metrics.json` và `metrics.csv` vào thư mục đầu ra. Đây là số đo trên video, máy và nhãn được cung cấp, không phải kết quả đã đo sẵn trong repo.
 
+### Thu thập dữ liệu và huấn luyện mô hình chuỗi thời gian
+
+Hạ tầng chuỗi thời gian hỗ trợ so sánh luật trong state machine với mô hình GRU/1D-CNN trên các cửa sổ đặc trưng khoảng 30 giây, chuẩn hóa theo baseline của phiên. Mô hình chưa được gắn vào pipeline giám sát.
+
+1. Xuất số liệu phiên từ SQL Server:
+
+   ```powershell
+   .\.venv\Scripts\python.exe scripts\export_session_metrics.py --session-id 12 --output-dir data\seq
+   # Hoặc xuất mọi phiên của một tài khoản:
+   .\.venv\Scripts\python.exe scripts\export_session_metrics.py --user-id 4 --output-dir data\seq
+   ```
+
+2. Hoặc trích đặc trưng từ video cục bộ (khung hình chỉ xử lý trong bộ nhớ):
+
+   ```powershell
+   .\.venv\Scripts\python.exe scripts\extract_features_from_video.py path\to\video.mp4 --output data\seq\video.csv
+   ```
+
+   CSV nhãn dùng các cột `start_seconds,end_seconds,label`; `label` là `tinh_tao`, `met_moi`, `buon_ngu` hoặc `ngu_gat`, các khoảng không chồng lấn.
+
+3. Dựng dataset và huấn luyện; mỗi cặp feature/label phải thuộc một người khác nhau để chia train/validation/test theo subject, không chia theo cửa sổ:
+
+   ```powershell
+   .\.venv\Scripts\python.exe ml\train_sequence_model.py `
+     --pair data\seq\s1.csv:data\seq\s1_labels.csv:personA `
+     --pair data\seq\s2.csv:data\seq\s2_labels.csv:personB `
+     --pair data\seq\s3.csv:data\seq\s3_labels.csv:personC `
+     --model gru --output models\sequence_model.tflite
+   ```
+
+Dữ liệu tự quay là mô phỏng, không đại diện đầy đủ cho tình trạng buồn ngủ khi lái xe. Chỉ số Precision/Recall/F1 và confusion matrix có ý nghĩa khi dữ liệu được gán nhãn đáng tin cậy; chưa có huấn luyện hay kết quả đo nào được thực hiện sẵn. CSV có thể chứa mã tài khoản và chỉ số phiên; bảo vệ dữ liệu xuất như dữ liệu cá nhân và không commit chúng.
+
 ### Integration tests
 
 Service integration tests are skipped unless `TEST_DB_*` is explicitly configured. They require a separate SQL Server database whose `TEST_DB_NAME` contains `test` and differs from `DB_NAME`. Create its schema using the steps above, then set the test login values in the local `.env`. Tests never fall back to `DB_*`; do not point `TEST_DB_*` at a database containing application data.

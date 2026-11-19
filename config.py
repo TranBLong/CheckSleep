@@ -111,3 +111,32 @@ CNN_EYE_CROP_PADDING_RATIO = 0.4
 EYE_TFLITE_MODEL_PATH = Path(__file__).resolve().parent / "models" / "eye_classifier.tflite"
 MOUTH_TFLITE_MODEL_PATH = Path(__file__).resolve().parent / "models" / "mouth_classifier.tflite"
 CNN_USE_MOUTH_MODEL = False  # Model miệng mức 2; bật khi đã có mouth_classifier.tflite
+
+# --- Mô hình chuỗi thời gian (GRU/1D-CNN), so sánh với luật ---
+SEQ_WINDOW_SECONDS = 30
+SEQ_STRIDE_SECONDS = 5
+SEQ_SAMPLE_HZ = 1.0
+# Tỷ lệ mẫu thiếu tối đa trong cửa sổ; vượt → bỏ cửa sổ.
+SEQ_MAX_MISSING_RATIO = 0.35
+# Nhãn chiếm ≥ tỷ lệ này mới gán; không đủ → bỏ cửa sổ.
+SEQ_MAJORITY_MIN_RATIO = 0.5
+SEQ_FEATURES = (
+    "ear_norm",
+    "mar_norm",
+    "pitch_delta",
+    "perclos",
+    "diem_met_moi",
+    "ear_missing",
+    "mar_missing",
+    "pitch_missing",
+    "perclos_missing",
+    "diem_met_moi_missing",
+)
+SEQ_LABELS = ("tinh_tao", "met_moi", "buon_ngu", "ngu_gat")
+# UNKNOWN bị loại khỏi nhãn huấn luyện.
+SEQ_STATE_TO_LABEL = {
+    "ALERT": "tinh_tao",
+    "FATIGUED": "met_moi",
+    "DROWSY": "buon_ngu",
+    "ASLEEP": "ngu_gat",
+}
