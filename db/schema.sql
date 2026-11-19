@@ -127,3 +127,12 @@ BEGIN
         ON dbo.SoLieuPhien (MaPhien, ThoiGian);
 END;
 GO
+
+IF COL_LENGTH(N'dbo.SoLieuPhien', N'DiemMetMoi') IS NULL
+BEGIN
+    ALTER TABLE dbo.SoLieuPhien
+        ADD DiemMetMoi FLOAT NULL
+            CONSTRAINT CK_SoLieuPhien_DiemMetMoi
+            CHECK (DiemMetMoi IS NULL OR (DiemMetMoi >= 0 AND DiemMetMoi <= 100));
+END;
+GO

@@ -118,6 +118,7 @@ def test_session_metrics_batch_and_owner_scope(sql_services):
                 "perclos": 8.5,
                 "pitch": 1.0,
                 "trang_thai": "ALERT",
+                "diem_met_moi": 12.5,
             },
             {
                 "thoi_gian": None,
@@ -126,6 +127,7 @@ def test_session_metrics_batch_and_owner_scope(sql_services):
                 "perclos": 12.0,
                 "pitch": -3.0,
                 "trang_thai": "FATIGUED",
+                "diem_met_moi": 55.0,
             },
         ],
     )
@@ -133,7 +135,9 @@ def test_session_metrics_batch_and_owner_scope(sql_services):
     rows = sql_services["sessions"].list_metrics_for_user(session_id, user_id)
     assert len(rows) == 2
     assert rows[0]["EAR"] == pytest.approx(0.28)
+    assert rows[0]["DiemMetMoi"] == pytest.approx(12.5)
     assert rows[1]["TrangThai"] == "FATIGUED"
+    assert rows[1]["DiemMetMoi"] == pytest.approx(55.0)
 
     assert sql_services["sessions"].list_metrics_for_user(session_id, other_id) == []
 

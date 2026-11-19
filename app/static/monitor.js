@@ -83,6 +83,20 @@
     document.getElementById("pitch-value").textContent =
       format(status.pitch, 1, "°");
     document.getElementById("fps-value").textContent = format(status.fps, 1);
+    const fatigueEl = document.getElementById("fatigue-value");
+    const bar = document.getElementById("fatigue-bar");
+    const score = status.fatigue_score;
+    if (!Number.isFinite(score)) {
+      fatigueEl.textContent = "—";
+      bar.style.width = "0%";
+      bar.dataset.level = "none";
+    } else {
+      const clamped = Math.max(0, Math.min(100, score));
+      fatigueEl.textContent = clamped.toFixed(0);
+      bar.style.width = `${clamped}%`;
+      bar.dataset.level =
+        clamped < 33 ? "low" : clamped <= 66 ? "mid" : "high";
+    }
   }
 
   function render(status) {

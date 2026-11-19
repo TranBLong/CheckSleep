@@ -34,6 +34,21 @@ HEAD_NOD_DROWSY_COUNT_MIN = 2
 HEAD_NOD_COUNT_WINDOW_SECONDS = 60
 HEAD_BOW_ASLEEP_DURATION_SECONDS = 2
 
+# Điểm mệt mỏi 0–100; giá trị khởi điểm, cần hiệu chỉnh bằng thực nghiệm.
+FATIGUE_SCORE_WEIGHTS = {
+    "perclos": 0.40,
+    "long_blink": 0.25,
+    "yawn": 0.20,
+    "head_nod": 0.15,
+}
+FATIGUE_SCORE_SMOOTHING_ALPHA = 0.3  # làm mượt mũ; giá trị khởi điểm, cần hiệu chỉnh
+# Mức tham chiếu (0 → 0, mức này → 1); lấy từ ngưỡng đã có, không lặp số cứng.
+FATIGUE_SCORE_PERCLOS_REF_PERCENT = PERCLOS_DROWSY_THRESHOLD_PERCENT
+FATIGUE_SCORE_LONG_BLINK_REF_COUNT = LONG_BLINK_DROWSY_COUNT_MIN
+FATIGUE_SCORE_YAWN_REF_COUNT = YAWN_DROWSY_COUNT_MIN
+FATIGUE_SCORE_HEAD_NOD_REF_COUNT = HEAD_NOD_DROWSY_COUNT_MIN
+FATIGUE_SCORE_ASLEEP_FLOOR = 90.0  # sàn khi ASLEEP; giá trị khởi điểm, cần hiệu chỉnh
+
 EYES_CLOSED_EAR_BASELINE_RATIO = 0.75
 CALIBRATION_DURATION_SECONDS = 5
 CALIBRATION_MIN_VALID_FRAMES = 30

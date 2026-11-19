@@ -85,6 +85,36 @@ body[data-state="ALERT"] .status-heading h1 { color: #176b37; }
 .metrics div { padding: 14px; border-radius: 10px; background: #f1f5f6; }
 .metrics span { display: block; color: #5c6971; font-size: .83rem; font-weight: 700; }
 .metrics strong { display: block; margin-top: 6px; font-size: 1.3rem; font-variant-numeric: tabular-nums; }
+.fatigue-wrap { margin-top: 14px; }
+.fatigue-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+  font-weight: 750;
+  font-size: 1.05rem;
+}
+.fatigue-label strong {
+  font-size: 1.4rem;
+  font-variant-numeric: tabular-nums;
+}
+.fatigue-track {
+  height: 14px;
+  border-radius: 999px;
+  background: #e2e8eb;
+  overflow: hidden;
+}
+.fatigue-bar {
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: #74818a;
+  transition: width .25s ease, background-color .25s ease;
+}
+.fatigue-bar[data-level="low"] { background: #26864a; }
+.fatigue-bar[data-level="mid"] { background: #e3b51b; }
+.fatigue-bar[data-level="high"] { background: #bb302b; }
+.fatigue-bar[data-level="none"] { background: #74818a; }
 .partial-note { color: #805c00; font-weight: 700; }
 .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
 

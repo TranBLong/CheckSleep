@@ -121,6 +121,7 @@ def monitor_status():
             perclos=None,
             pitch=None,
             fps=0.0,
+            fatigue_score=None,
             calibrating=False,
             calibration_remaining=CALIBRATION_DURATION_SECONDS,
             calibration=None,

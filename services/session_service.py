@@ -91,9 +91,10 @@ class SessionService:
             cursor.executemany(
                 """
                 INSERT INTO dbo.SoLieuPhien (
-                    MaPhien, ThoiGian, EAR, MAR, PERCLOS, Pitch, TrangThai
+                    MaPhien, ThoiGian, EAR, MAR, PERCLOS, Pitch,
+                    TrangThai, DiemMetMoi
                 )
-                VALUES (?, COALESCE(?, SYSUTCDATETIME()), ?, ?, ?, ?, ?)
+                VALUES (?, COALESCE(?, SYSUTCDATETIME()), ?, ?, ?, ?, ?, ?)
                 """,
                 [
                     (
@@ -104,6 +105,7 @@ class SessionService:
                         sample.get("perclos"),
                         sample.get("pitch"),
                         sample["trang_thai"],
+                        sample.get("diem_met_moi"),
                     )
                     for sample in samples
                 ],
@@ -118,7 +120,7 @@ class SessionService:
             cursor.execute(
                 """
                 SELECT s.MaSoLieu, s.ThoiGian, s.EAR, s.MAR, s.PERCLOS,
-                       s.Pitch, s.TrangThai
+                       s.Pitch, s.TrangThai, s.DiemMetMoi
                 FROM dbo.SoLieuPhien AS s
                 INNER JOIN dbo.PhienGiamSat AS p ON p.MaPhien = s.MaPhien
                 WHERE s.MaPhien = ? AND p.MaND = ?

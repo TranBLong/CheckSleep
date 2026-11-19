@@ -92,6 +92,9 @@ def test_build_metric_sample_fields():
     assert sample["ear"] == 0.3
     assert sample["trang_thai"] == "ALERT"
     assert sample["thoi_gian"] is not None
+    assert sample["diem_met_moi"] is None
+    sample2 = build_metric_sample(0.3, 0.1, 5.0, 2.0, "ALERT", 42.5)
+    assert sample2["diem_met_moi"] == pytest.approx(42.5)
 
 
 def test_pipeline_opens_camera_only_after_start_and_releases_it():

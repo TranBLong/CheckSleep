@@ -107,6 +107,7 @@ def history_metrics(session_id: int):
             "PERCLOS": row.get("PERCLOS"),
             "Pitch": row.get("Pitch"),
             "TrangThai": row.get("TrangThai"),
+            "DiemMetMoi": row.get("DiemMetMoi"),
         }
         for row in rows
     ]

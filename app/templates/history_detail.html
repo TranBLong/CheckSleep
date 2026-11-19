@@ -28,7 +28,7 @@
           <h2>Biểu đồ số liệu</h2>
           <p id="metrics-empty" class="notice" hidden>Chưa có số liệu.</p>
           <div class="table-wrap">
-            <canvas id="metrics-chart" height="120" aria-label="Biểu đồ EAR, PERCLOS, Pitch"></canvas>
+            <canvas id="metrics-chart" height="120" aria-label="Biểu đồ EAR, PERCLOS, Pitch, Điểm mệt mỏi"></canvas>
           </div>
           <h2>Lịch sử cảnh báo</h2>
           {% if not alerts %}<p>Chưa có cảnh báo trong phiên này.</p>
@@ -76,7 +76,13 @@
                 datasets: [
                   { label: "EAR", data: rows.map(function (r) { return r.EAR; }), tension: 0.2, yAxisID: "y" },
                   { label: "PERCLOS", data: rows.map(function (r) { return r.PERCLOS; }), tension: 0.2, yAxisID: "y1" },
-                  { label: "Pitch", data: rows.map(function (r) { return r.Pitch; }), tension: 0.2, yAxisID: "y" }
+                  { label: "Pitch", data: rows.map(function (r) { return r.Pitch; }), tension: 0.2, yAxisID: "y" },
+                  {
+                    label: "Điểm mệt mỏi",
+                    data: rows.map(function (r) { return r.DiemMetMoi; }),
+                    tension: 0.2,
+                    yAxisID: "y1"
+                  }
                 ]
               },
               options: {

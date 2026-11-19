@@ -30,6 +30,7 @@ from core.classifier import (
     extract_mouth_crop,
 )
 from core.driver_selector import BoXacDinhTaiXe, DriverSelection
+from core.fatigue_score import BoDiemMetMoi
 from core.face import FaceLandmarkDetector
 from core.metrics import MovingAverage
 from core.quality import assess_frame_quality
@@ -80,6 +81,7 @@ def build_metric_sample(
     perclos: float | None,
     pitch: float | None,
     state: str,
+    fatigue_score: float | None = None,
 ) -> dict:
     """Tạo dict mẫu số liệu (thời gian wall-clock UTC)."""
     return {
@@ -89,6 +91,7 @@ def build_metric_sample(
         "perclos": perclos,
         "pitch": pitch,
         "trang_thai": state,
+        "diem_met_moi": fatigue_score,
     }
 
 
@@ -297,6 +300,7 @@ class DieuKhienGiamSat:
 
         calibration_started_at = None
         temporal = None
+        fatigue_meter = BoDiemMetMoi()
         driver_recalibration_pending = False
         calibration_retry_pending = False
         driver_selector = BoXacDinhTaiXe()
@@ -366,6 +370,7 @@ class DieuKhienGiamSat:
                 calibration_started_at = timestamp
                 self._calibration = None
                 temporal = None
+                fatigue_meter.reset()
                 state_machine.reset()
                 previous_state = TrangThai.UNKNOWN
                 for smoother in smoothers:
@@ -382,6 +387,7 @@ class DieuKhienGiamSat:
                         mar=None,
                         pitch=None,
                         perclos=None,
+                        fatigue_score=None,
                         partial_data=False,
                         message="Mất theo dõi tài xế quá 3 giây; cần xác minh và hiệu chỉnh lại.",
                     )
@@ -453,6 +459,7 @@ class DieuKhienGiamSat:
                     continue
                 self._calibration = calibration.finish(timestamp)
                 temporal = BoTheoDoiThoiGian(self._calibration.pitch0)
+                fatigue_meter.reset()
                 driver_recalibration_pending = False
                 calibration_retry_pending = False
                 with self._lock:
@@ -515,6 +522,21 @@ class DieuKhienGiamSat:
                 has_face=has_face,
                 quality_ok=True,
             )
+            fatigue_score = fatigue_meter.update(
+                temporal_result.perclos_percent
+                if temporal_result.has_valid_data
+                else None,
+                temporal_result.long_blink_count_60s
+                if temporal_result.has_valid_data
+                else None,
+                temporal_result.yawn_count_10m
+                if temporal_result.has_valid_data
+                else None,
+                temporal_result.nod_count_60s
+                if temporal_result.has_valid_data
+                else None,
+                state,
+            )
             if (
                 temporal is not None
                 and _STATE_SEVERITY[state] < _STATE_SEVERITY[previous_state]
@@ -539,6 +561,7 @@ class DieuKhienGiamSat:
                     mar=measured.mar if measured else None,
                     pitch=measured.pitch if measured else None,
                     perclos=temporal_result.perclos_percent,
+                    fatigue_score=fatigue_score,
                     partial_data=(
                         temporal_result.partial_data
                         or result.partial_data
@@ -580,6 +603,7 @@ class DieuKhienGiamSat:
                             temporal_result.perclos_percent,
                             measured.pitch if measured else None,
                             state.value,
+                            fatigue_score,
                         )
                     )
                     if len(self._metric_buffer) >= METRIC_LOG_BATCH_SIZE:
@@ -697,6 +721,7 @@ class DieuKhienGiamSat:
             "perclos": None,
             "pitch": None,
             "fps": 0.0,
+            "fatigue_score": None,
             "calibrating": False,
             "calibration_remaining": CALIBRATION_DURATION_SECONDS,
             "calibration": None,
