@@ -103,6 +103,41 @@ def test_history_queries_do_not_return_other_users_sessions(sql_services):
     assert sql_services["sessions"].get_for_user(session_id, other_user_id) is None
 
 
+def test_session_metrics_batch_and_owner_scope(sql_services):
+    _, _, user_id = _new_driver(sql_services)
+    _, _, other_id = _new_driver(sql_services)
+    session_id = sql_services["sessions"].start_session(user_id)
+
+    sql_services["sessions"].append_metrics(
+        session_id,
+        [
+            {
+                "thoi_gian": None,
+                "ear": 0.28,
+                "mar": 0.12,
+                "perclos": 8.5,
+                "pitch": 1.0,
+                "trang_thai": "ALERT",
+            },
+            {
+                "thoi_gian": None,
+                "ear": 0.22,
+                "mar": 0.15,
+                "perclos": 12.0,
+                "pitch": -3.0,
+                "trang_thai": "FATIGUED",
+            },
+        ],
+    )
+
+    rows = sql_services["sessions"].list_metrics_for_user(session_id, user_id)
+    assert len(rows) == 2
+    assert rows[0]["EAR"] == pytest.approx(0.28)
+    assert rows[1]["TrangThai"] == "FATIGUED"
+
+    assert sql_services["sessions"].list_metrics_for_user(session_id, other_id) == []
+
+
 def test_admin_seed_creates_an_admin_without_driver_configuration(sql_services):
     username = f"admin_{uuid.uuid4().hex[:20]}"
     admin_id = sql_services["users"].seed_admin(

@@ -81,6 +81,54 @@ class SessionService:
             )
             return row_as_dict(cursor, cursor.fetchone())
 
+    def append_metrics(self, session_id: int, samples: list[dict]) -> None:
+        """Ghi lô số liệu phiên (không ghi từng khung hình)."""
+        if not samples:
+            return
+        with transaction(self._connection_factory) as conn:
+            cursor = conn.cursor()
+            cursor.fast_executemany = True
+            cursor.executemany(
+                """
+                INSERT INTO dbo.SoLieuPhien (
+                    MaPhien, ThoiGian, EAR, MAR, PERCLOS, Pitch, TrangThai
+                )
+                VALUES (?, COALESCE(?, SYSUTCDATETIME()), ?, ?, ?, ?, ?)
+                """,
+                [
+                    (
+                        session_id,
+                        sample.get("thoi_gian"),
+                        sample.get("ear"),
+                        sample.get("mar"),
+                        sample.get("perclos"),
+                        sample.get("pitch"),
+                        sample["trang_thai"],
+                    )
+                    for sample in samples
+                ],
+            )
+
+    def list_metrics_for_user(
+        self, session_id: int, user_id: int
+    ) -> list[dict]:
+        """Đọc số liệu phiên; chỉ trả về nếu phiên thuộc đúng người dùng."""
+        with transaction(self._connection_factory) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT s.MaSoLieu, s.ThoiGian, s.EAR, s.MAR, s.PERCLOS,
+                       s.Pitch, s.TrangThai
+                FROM dbo.SoLieuPhien AS s
+                INNER JOIN dbo.PhienGiamSat AS p ON p.MaPhien = s.MaPhien
+                WHERE s.MaPhien = ? AND p.MaND = ?
+                ORDER BY s.ThoiGian ASC
+                """,
+                session_id,
+                user_id,
+            )
+            return rows_as_dicts(cursor, cursor.fetchall())
+
 
 def _default_connection():
     from db.connection import get_connection

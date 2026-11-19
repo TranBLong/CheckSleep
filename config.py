@@ -62,6 +62,9 @@ CAMERA_INDEX = 0
 DEMO_CONSOLE_INTERVAL_SECONDS = 1.0
 # Tự dừng phiên nếu /api/status không được gọi (tab đóng, mất mạng).
 CLIENT_HEARTBEAT_TIMEOUT_SECONDS = 15.0
+# Khoảng ghi số liệu phiên (giây); không ghi từng khung hình.
+METRIC_LOG_INTERVAL_SECONDS = 1.0
+METRIC_LOG_BATCH_SIZE = 5
 FACE_DETECTION_MODEL_SELECTION = 0
 FACE_DETECTION_MIN_CONFIDENCE = 0.5
 FACE_MESH_MAX_NUM_FACES = 5

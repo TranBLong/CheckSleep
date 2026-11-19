@@ -4,7 +4,11 @@ from threading import Event, Lock
 import numpy as np
 import pytest
 
-from core.pipeline import DieuKhienGiamSat
+from core.pipeline import (
+    DieuKhienGiamSat,
+    build_metric_sample,
+    should_sample_metric,
+)
 from core.classifier import KetQuaMoHinh
 from core.types import FaceCandidate, KetQuaPhatHien
 
@@ -75,6 +79,19 @@ def _valid_landmarks():
     }.items():
         landmarks[index] = point
     return tuple(landmarks)
+
+
+def test_should_sample_metric_interval():
+    assert should_sample_metric(None, 0.0, 1.0) is True
+    assert should_sample_metric(0.0, 0.5, 1.0) is False
+    assert should_sample_metric(0.0, 1.0, 1.0) is True
+
+
+def test_build_metric_sample_fields():
+    sample = build_metric_sample(0.3, 0.1, 5.0, 2.0, "ALERT")
+    assert sample["ear"] == 0.3
+    assert sample["trang_thai"] == "ALERT"
+    assert sample["thoi_gian"] is not None
 
 
 def test_pipeline_opens_camera_only_after_start_and_releases_it():

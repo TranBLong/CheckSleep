@@ -2,6 +2,7 @@
 
 from collections import deque
 from dataclasses import replace
+from datetime import datetime, timezone
 from math import isfinite
 from threading import Event, Lock, Thread
 from time import monotonic
@@ -16,6 +17,8 @@ from config import (
     CNN_EYE_CLOSED_THRESHOLD,
     CNN_MOUTH_YAWN_THRESHOLD,
     CNN_USE_MOUTH_MODEL,
+    METRIC_LOG_BATCH_SIZE,
+    METRIC_LOG_INTERVAL_SECONDS,
 )
 from core.alert import BoDieuKhienCanhBao
 from core.calibration import BoHieuChinhCaNhan, KetQuaHieuChinh
@@ -64,6 +67,31 @@ class FaceDetector(Protocol):
     def close(self) -> None: ...
 
 
+def should_sample_metric(
+    last_log_at: float | None, now: float, interval: float
+) -> bool:
+    """True khi đến lúc gom một mẫu số liệu phiên."""
+    return last_log_at is None or (now - last_log_at) >= interval
+
+
+def build_metric_sample(
+    ear: float | None,
+    mar: float | None,
+    perclos: float | None,
+    pitch: float | None,
+    state: str,
+) -> dict:
+    """Tạo dict mẫu số liệu (thời gian wall-clock UTC)."""
+    return {
+        "thoi_gian": datetime.now(timezone.utc).replace(tzinfo=None),
+        "ear": ear,
+        "mar": mar,
+        "perclos": perclos,
+        "pitch": pitch,
+        "trang_thai": state,
+    }
+
+
 class DieuKhienGiamSat:
     """Run camera processing on a dedicated thread (class: DieuKhienGiamSat)."""
 
@@ -76,6 +104,7 @@ class DieuKhienGiamSat:
         on_session_end: Callable[[int, dict], None] | None = None,
         classifier_mode: str = CLASSIFIER_MODE,
         classifier_factory: Callable[[], MoHinhPhatHien] = MoHinhPhatHien,
+        on_metrics_batch: Callable[[int, list[dict]], None] | None = None,
     ) -> None:
         if classifier_mode not in {"baseline", "cnn"}:
             raise ValueError("classifier_mode must be 'baseline' or 'cnn'.")
@@ -84,6 +113,7 @@ class DieuKhienGiamSat:
         self._clock = clock
         self._on_alert = on_alert
         self._on_session_end = on_session_end
+        self._on_metrics_batch = on_metrics_batch
         self._classifier_mode = classifier_mode
         self._classifier_factory = classifier_factory
         self._lock = Lock()
@@ -99,6 +129,8 @@ class DieuKhienGiamSat:
         self._session_id: int | None = None
         self._highest_state = TrangThai.UNKNOWN
         self._last_client_status_at: float | None = None
+        self._metric_buffer: list[dict] = []
+        self._last_metric_log_at: float | None = None
         self._status = self._empty_status()
 
     def start(self, session_id: int | None = None) -> bool:
@@ -113,6 +145,8 @@ class DieuKhienGiamSat:
             self._frame_times.clear()
             self._calibration = None
             self._session_id = session_id
+            self._metric_buffer = []
+            self._last_metric_log_at = None
             self._highest_state = TrangThai.UNKNOWN
             self._last_client_status_at = None
             self._alerts = BoDieuKhienCanhBao()
@@ -236,6 +270,7 @@ class DieuKhienGiamSat:
                     "state": self._highest_state.value,
                     "calibration": self._status["calibration"],
                 }
+            self._flush_metric_buffer()
             if session_id is not None and self._on_session_end is not None:
                 try:
                     self._on_session_end(session_id, summary)
@@ -528,6 +563,27 @@ class DieuKhienGiamSat:
                         or self._state_message(state, temporal_result)
                     ),
                 )
+                if (
+                    temporal is not None
+                    and self._session_id is not None
+                    and should_sample_metric(
+                        self._last_metric_log_at,
+                        timestamp,
+                        METRIC_LOG_INTERVAL_SECONDS,
+                    )
+                ):
+                    self._last_metric_log_at = timestamp
+                    self._metric_buffer.append(
+                        build_metric_sample(
+                            measured.ear if measured else None,
+                            measured.mar if measured else None,
+                            temporal_result.perclos_percent,
+                            measured.pitch if measured else None,
+                            state.value,
+                        )
+                    )
+                    if len(self._metric_buffer) >= METRIC_LOG_BATCH_SIZE:
+                        self._flush_metric_buffer()
             if (
                 alert.should_emit
                 and alert.level is not None
@@ -551,6 +607,21 @@ class DieuKhienGiamSat:
                     # Lỗi CSDL không được dừng vòng giám sát.
                     with self._lock:
                         self._status["message"] = "Không lưu được cảnh báo vào CSDL"
+
+    def _flush_metric_buffer(self) -> None:
+        """Ghi lô số liệu qua callback; lỗi CSDL không dừng giám sát."""
+        if not self._metric_buffer or self._session_id is None:
+            return
+        if self._on_metrics_batch is None:
+            self._metric_buffer.clear()
+            return
+        batch = list(self._metric_buffer)
+        self._metric_buffer.clear()
+        try:
+            self._on_metrics_batch(self._session_id, batch)
+        except Exception:
+            with self._lock:
+                self._status["message"] = "Không lưu được số liệu phiên vào CSDL"
 
     @staticmethod
     def _smooth_result(

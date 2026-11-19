@@ -1,4 +1,4 @@
-from flask import Blueprint, current_app, render_template
+from flask import Blueprint, current_app, jsonify, render_template
 from flask_login import current_user, login_required
 
 from db.connection import DatabaseError
@@ -78,3 +78,36 @@ def history_detail(session_id: int):
         alerts=alerts,
         error=None,
     )
+
+
+@history_bp.get("/history/<int:session_id>/metrics")
+@login_required
+def history_metrics(session_id: int):
+    try:
+        session = _sessions().get_for_user(session_id, int(current_user.id))
+    except DatabaseError:
+        return jsonify(error="Không tải được phiên từ cơ sở dữ liệu."), 503
+    if session is None:
+        return jsonify(error="Không tìm thấy phiên giám sát."), 404
+    try:
+        rows = _sessions().list_metrics_for_user(
+            session_id, int(current_user.id)
+        )
+    except DatabaseError:
+        return jsonify(error="Không tải được số liệu phiên."), 503
+    payload = [
+        {
+            "ThoiGian": (
+                row["ThoiGian"].isoformat(sep=" ", timespec="seconds")
+                if row.get("ThoiGian") is not None
+                else None
+            ),
+            "EAR": row.get("EAR"),
+            "MAR": row.get("MAR"),
+            "PERCLOS": row.get("PERCLOS"),
+            "Pitch": row.get("Pitch"),
+            "TrangThai": row.get("TrangThai"),
+        }
+        for row in rows
+    ]
+    return jsonify(metrics=payload)

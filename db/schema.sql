@@ -96,3 +96,34 @@ BEGIN
     );
 END;
 GO
+
+IF OBJECT_ID(N'dbo.SoLieuPhien', N'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.SoLieuPhien (
+        MaSoLieu INT IDENTITY(1,1) NOT NULL
+            CONSTRAINT PK_SoLieuPhien PRIMARY KEY,
+        MaPhien INT NOT NULL,
+        ThoiGian DATETIME2 NOT NULL
+            CONSTRAINT DF_SoLieuPhien_ThoiGian DEFAULT SYSUTCDATETIME(),
+        EAR FLOAT NULL,
+        MAR FLOAT NULL,
+        PERCLOS FLOAT NULL,
+        Pitch FLOAT NULL,
+        TrangThai NVARCHAR(20) NOT NULL,
+        CONSTRAINT FK_SoLieuPhien_PhienGiamSat FOREIGN KEY (MaPhien)
+            REFERENCES dbo.PhienGiamSat(MaPhien)
+    );
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes
+    WHERE name = N'IX_SoLieuPhien_MaPhien_ThoiGian'
+      AND object_id = OBJECT_ID(N'dbo.SoLieuPhien')
+)
+BEGIN
+    CREATE INDEX IX_SoLieuPhien_MaPhien_ThoiGian
+        ON dbo.SoLieuPhien (MaPhien, ThoiGian);
+END;
+GO

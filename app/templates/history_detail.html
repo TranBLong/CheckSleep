@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Chi tiết phiên | DrowsyGuard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   </head>
   <body>
     <main class="site-shell">
@@ -24,6 +25,11 @@
             <dt>Số cảnh báo</dt><dd>{{ session.SoLanCanhBao }}</dd>
             <dt>EAR0 / MAR0 / Pitch0</dt><dd>{{ session.EAR0 or "—" }} / {{ session.MAR0 or "—" }} / {{ session.Pitch0 or "—" }}</dd>
           </dl>
+          <h2>Biểu đồ số liệu</h2>
+          <p id="metrics-empty" class="notice" hidden>Chưa có số liệu.</p>
+          <div class="table-wrap">
+            <canvas id="metrics-chart" height="120" aria-label="Biểu đồ EAR, PERCLOS, Pitch"></canvas>
+          </div>
           <h2>Lịch sử cảnh báo</h2>
           {% if not alerts %}<p>Chưa có cảnh báo trong phiên này.</p>
           {% else %}
@@ -45,5 +51,51 @@
         {% endif %}
       </section>
     </main>
+    {% if session %}
+    <script>
+      (function () {
+        const emptyEl = document.getElementById("metrics-empty");
+        const canvas = document.getElementById("metrics-chart");
+        fetch("{{ url_for('history.history_metrics', session_id=session.MaPhien) }}")
+          .then(function (res) {
+            if (!res.ok) throw new Error("load-failed");
+            return res.json();
+          })
+          .then(function (data) {
+            const rows = data.metrics || [];
+            if (!rows.length) {
+              emptyEl.hidden = false;
+              canvas.style.display = "none";
+              return;
+            }
+            const labels = rows.map(function (r) { return r.ThoiGian || ""; });
+            new Chart(canvas.getContext("2d"), {
+              type: "line",
+              data: {
+                labels: labels,
+                datasets: [
+                  { label: "EAR", data: rows.map(function (r) { return r.EAR; }), tension: 0.2, yAxisID: "y" },
+                  { label: "PERCLOS", data: rows.map(function (r) { return r.PERCLOS; }), tension: 0.2, yAxisID: "y1" },
+                  { label: "Pitch", data: rows.map(function (r) { return r.Pitch; }), tension: 0.2, yAxisID: "y" }
+                ]
+              },
+              options: {
+                responsive: true,
+                interaction: { mode: "index", intersect: false },
+                scales: {
+                  y: { type: "linear", position: "left", title: { display: true, text: "EAR / Pitch" } },
+                  y1: { type: "linear", position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "PERCLOS %" } }
+                }
+              }
+            });
+          })
+          .catch(function () {
+            emptyEl.hidden = false;
+            emptyEl.textContent = "Không tải được số liệu.";
+            canvas.style.display = "none";
+          });
+      })();
+    </script>
+    {% endif %}
   </body>
 </html>

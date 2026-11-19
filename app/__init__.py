@@ -59,6 +59,9 @@ def create_app(test_config=None):
     def persist_alert(session_id, event):
         alerts.record_alert(session_id=session_id, **event)
 
+    def persist_metrics(session_id, samples):
+        sessions.append_metrics(session_id, samples)
+
     def finish_session(session_id, summary):
         try:
             sessions.end_session(
@@ -83,6 +86,7 @@ def create_app(test_config=None):
         pipeline = DieuKhienGiamSat(
             on_alert=persist_alert,
             on_session_end=finish_session,
+            on_metrics_batch=persist_metrics,
         )
     else:
         pipeline = pipeline_factory()
