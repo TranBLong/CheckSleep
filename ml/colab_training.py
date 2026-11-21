@@ -21,7 +21,7 @@ class SampleRecord:
 def scan_mrl_eye_dataset(
     root: str | Path,
     *,
-    state_field_index: int = 3,
+    state_field_index: int = 4,
     closed_value: str = "0",
     open_value: str = "1",
 ) -> list[SampleRecord]:

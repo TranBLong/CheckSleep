@@ -12,16 +12,16 @@ from ml.colab_training import (
 
 def test_mrl_eye_parser_reads_standard_subject_and_state_fields(tmp_path):
     for filename in (
-        "s0001_0_0_0_0_0_0_01.png",
-        "s0002_0_0_1_0_0_0_01.png",
+        "s0001_00001_0_0_0_0_0_01.png",
+        "s0002_00001_0_0_1_0_0_01.png",
     ):
         (tmp_path / filename).write_bytes(b"placeholder")
 
     records = scan_mrl_eye_dataset(tmp_path)
 
     assert [(Path(record.path).name, record.subject_id, record.label) for record in records] == [
-        ("s0001_0_0_0_0_0_0_01.png", "s0001", 1),
-        ("s0002_0_0_1_0_0_0_01.png", "s0002", 0),
+        ("s0001_00001_0_0_0_0_0_01.png", "s0001", 1),
+        ("s0002_00001_0_0_1_0_0_01.png", "s0002", 0),
     ]
 
 
