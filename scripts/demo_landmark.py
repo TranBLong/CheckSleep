@@ -5,7 +5,12 @@ from time import monotonic
 
 import cv2
 
-from config import CAMERA_INDEX, CNN_EYE_CROP_PADDING_RATIO, DEMO_CONSOLE_INTERVAL_SECONDS
+from config import (
+    CAMERA_FLIP_HORIZONTAL,
+    CAMERA_INDEX,
+    CNN_EYE_CROP_PADDING_RATIO,
+    DEMO_CONSOLE_INTERVAL_SECONDS,
+)
 from core.camera import QuanLyCamera
 from core.classifier import extract_eye_crops
 from core.face import FaceLandmarkDetector
@@ -56,6 +61,10 @@ def main() -> None:
             with FaceLandmarkDetector() as detector:
                 while True:
                     frame = camera.read()
+                    if frame is None:
+                        continue
+                    if CAMERA_FLIP_HORIZONTAL:
+                        frame = cv2.flip(frame, 1)
                     result = detector.process(frame)
                     if result.landmarks is not None:
                         _draw_landmark_groups(frame, result.landmarks)

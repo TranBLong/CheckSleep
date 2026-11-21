@@ -74,6 +74,8 @@ DEFAULT_DRIVER_CONFIG = {
 }
 
 CAMERA_INDEX = 0
+# Lật ngang camera (giống gương). True = lật, False = giữ nguyên.
+CAMERA_FLIP_HORIZONTAL = True
 DEMO_CONSOLE_INTERVAL_SECONDS = 1.0
 # Tự dừng phiên nếu /api/status không được gọi (tab đóng, mất mạng).
 CLIENT_HEARTBEAT_TIMEOUT_SECONDS = 15.0

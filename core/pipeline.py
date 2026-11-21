@@ -12,6 +12,7 @@ import cv2
 
 from config import (
     CALIBRATION_DURATION_SECONDS,
+    CAMERA_FLIP_HORIZONTAL,
     CLASSIFIER_MODE,
     CLIENT_HEARTBEAT_TIMEOUT_SECONDS,
     CNN_EYE_CLOSED_THRESHOLD,
@@ -369,6 +370,8 @@ class DieuKhienGiamSat:
             source_frame = camera.read()
             if source_frame is None:
                 return
+            if CAMERA_FLIP_HORIZONTAL:
+                source_frame = cv2.flip(source_frame, 1)
             timestamp = self._clock()
             frame_quality = assess_frame_quality(source_frame)
             frame = frame_quality.frame
