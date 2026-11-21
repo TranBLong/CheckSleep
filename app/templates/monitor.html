@@ -65,10 +65,16 @@
           <img id="video" alt="Hình ảnh camera trực tiếp, chỉ xử lý trong bộ nhớ" hidden>
           <p id="video-placeholder">Hình camera sẽ xuất hiện khi phiên bắt đầu.</p>
         </div>
-        <label class="overlay-toggle">
-          <input id="overlay-toggle" type="checkbox">
-          Hiện khung + điểm mắt/miệng
-        </label>
+        <div class="overlay-controls">
+          <label class="overlay-toggle">
+            <input id="box-toggle" type="checkbox">
+            Hiện khung khuôn mặt
+          </label>
+          <label class="overlay-toggle">
+            <input id="landmarks-toggle" type="checkbox">
+            Hiện điểm trên khuôn mặt
+          </label>
+        </div>
 
         <div class="metrics" aria-label="Chỉ số hiện tại">
           <div><span>EAR</span><strong id="ear-value">—</strong></div>

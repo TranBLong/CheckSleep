@@ -172,8 +172,11 @@
   }
 
   function updateVideoUrl() {
-    const overlay = document.getElementById("overlay-toggle").checked ? "1" : "0";
-    const nextUrl = `/video_feed?overlay=${overlay}`;
+    const boxToggle = document.getElementById("box-toggle");
+    const landmarksToggle = document.getElementById("landmarks-toggle");
+    const showBox = boxToggle && boxToggle.checked ? "1" : "0";
+    const showLandmarks = landmarksToggle && landmarksToggle.checked ? "1" : "0";
+    const nextUrl = `/video_feed?box=${showBox}&landmarks=${showLandmarks}`;
     if (!video.src.endsWith(nextUrl)) video.src = nextUrl;
   }
 
@@ -219,7 +222,10 @@
       showError(error.message);
     }
   });
-  document.getElementById("overlay-toggle").addEventListener("change", updateVideoUrl);
+  const boxToggle = document.getElementById("box-toggle");
+  if (boxToggle) boxToggle.addEventListener("change", updateVideoUrl);
+  const landmarksToggle = document.getElementById("landmarks-toggle");
+  if (landmarksToggle) landmarksToggle.addEventListener("change", updateVideoUrl);
 
   async function poll() {
     try {

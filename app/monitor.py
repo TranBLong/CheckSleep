@@ -149,6 +149,8 @@ def video_feed():
     if not _is_session_owner(require_active=True):
         return jsonify(error="Bạn không sở hữu phiên giám sát hiện tại."), 403
     overlay = request.args.get("overlay", "0") == "1"
+    show_box = request.args.get("box", "0") == "1" or overlay
+    show_landmarks = request.args.get("landmarks", "0") == "1" or overlay
     pipeline = _pipeline()
 
     def frames():
@@ -157,7 +159,12 @@ def video_feed():
             status = pipeline.snapshot()
             frame_id, frame, _ = pipeline.frame_snapshot()
             if frame is not None and frame_id != last_frame_id:
-                image = pipeline.encode_frame(overlay=overlay)
+                try:
+                    image = pipeline.encode_frame(
+                        show_box=show_box, show_landmarks=show_landmarks
+                    )
+                except TypeError:
+                    image = pipeline.encode_frame(overlay=overlay or show_box or show_landmarks)
                 if image is not None:
                     last_frame_id = frame_id
                     yield (

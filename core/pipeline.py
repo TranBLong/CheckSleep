@@ -213,45 +213,59 @@ class DieuKhienGiamSat:
                 return self._frame_id, None, None
             return self._frame_id, self._frame.copy(), self._landmarks
 
-    def encode_frame(self, overlay: bool = False) -> bytes | None:
-        """Encode the current in-memory frame for a single MJPEG response."""
+    def encode_frame(
+        self,
+        overlay: bool = False,
+        show_box: bool = False,
+        show_landmarks: bool = False,
+    ) -> bytes | None:
+        """Encode the current in-memory frame; optionally draw face box and/or full face landmarks."""
         _, frame, landmarks = self.frame_snapshot()
         if frame is None:
             return None
-        if overlay and landmarks:
-            height, width = frame.shape[:2]
 
-            # 1. Vẽ khung xanh quanh mặt
-            all_points = [
+        # Hỗ trợ cờ overlay cũ (nếu bật overlay -> bật show_box và show_landmarks)
+        draw_box = show_box or overlay
+        draw_landmarks = show_landmarks or overlay
+
+        if landmarks and (draw_box or draw_landmarks):
+            height, width = frame.shape[:2]
+            points = [
                 (round(x * width), round(y * height))
                 for x, y, _ in landmarks
             ]
-            left = max(0, min(p[0] for p in all_points))
-            top = max(0, min(p[1] for p in all_points))
-            right = min(width - 1, max(p[0] for p in all_points))
-            bottom = min(height - 1, max(p[1] for p in all_points))
-            cv2.rectangle(frame, (left, top), (right, bottom), (0, 220, 100), 2)
 
-            # 2. Vẽ chấm + đường nối mắt và miệng
-            landmark_groups = (
-                LEFT_EYE_LANDMARK_INDICES,      # mắt trái
-                RIGHT_EYE_LANDMARK_INDICES,     # mắt phải
-                INNER_MOUTH_LANDMARK_INDICES,   # miệng
-            )
-            for indices in landmark_groups:
-                points = [
-                    (
-                        round(landmarks[i][0] * width),
-                        round(landmarks[i][1] * height),
-                    )
-                    for i in indices
-                ]
-                # Nối các điểm thành đường (xanh lá)
-                for start, end in zip(points, points[1:] + points[:1]):
-                    cv2.line(frame, start, end, (0, 255, 0), 2)
-                # Vẽ chấm đỏ tại mỗi landmark
+            # 1. Khung khuôn mặt
+            if draw_box:
+                left = max(0, min(p[0] for p in points))
+                top = max(0, min(p[1] for p in points))
+                right = min(width - 1, max(p[0] for p in points))
+                bottom = min(height - 1, max(p[1] for p in points))
+                cv2.rectangle(frame, (left, top), (right, bottom), (0, 220, 100), 2)
+
+            # 2. Toàn bộ điểm trên khuôn mặt (MediaPipe Face Mesh ~468 điểm)
+            if draw_landmarks:
                 for point in points:
-                    cv2.circle(frame, point, 3, (0, 0, 255), -1)
+                    cv2.circle(frame, point, 1, (0, 255, 255), -1)
+
+                # Nối đường mắt + miệng nổi bật
+                for indices in (
+                    LEFT_EYE_LANDMARK_INDICES,
+                    RIGHT_EYE_LANDMARK_INDICES,
+                    INNER_MOUTH_LANDMARK_INDICES,
+                ):
+                    group = [
+                        (
+                            round(landmarks[i][0] * width),
+                            round(landmarks[i][1] * height),
+                        )
+                        for i in indices
+                    ]
+                    for start, end in zip(group, group[1:] + group[:1]):
+                        cv2.line(frame, start, end, (0, 255, 0), 1)
+                    for p in group:
+                        cv2.circle(frame, p, 2, (0, 0, 255), -1)
+
         success, encoded = cv2.imencode(".jpg", frame)
         if not success:
             raise RuntimeError("Không thể mã hóa khung hình camera.")
