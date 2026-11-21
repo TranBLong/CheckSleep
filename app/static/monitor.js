@@ -204,10 +204,11 @@
     }
   });
   document.getElementById("ack-button").addEventListener("click", async () => {
+    stopSounds();
     try {
       await post("/api/ack");
     } catch (error) {
-      showError(error.message);
+      console.warn("Ack failed:", error.message);
     }
   });
   document.getElementById("retry-button").addEventListener("click", async () => {

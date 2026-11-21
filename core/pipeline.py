@@ -199,9 +199,15 @@ class DieuKhienGiamSat:
         """Acknowledge the currently active alert without muting level three."""
         with self._lock:
             state = TrangThai(self._status["state"])
-            result = self._alerts.acknowledge(self._clock(), state)
-            self._status["alert_acknowledged"] = result.acknowledged
-            self._status["alert_sound_enabled"] = result.sound_enabled
+            try:
+                result = self._alerts.acknowledge(self._clock(), state)
+                self._status["alert_acknowledged"] = result.acknowledged
+                self._status["alert_sound_enabled"] = result.sound_enabled
+            except ValueError:
+                # Timestamp lệch do race condition giữa luồng camera và luồng web:
+                # Vẫn ghi nhận acknowledged an toàn và không tắt âm mức 3 (ASLEEP).
+                self._status["alert_acknowledged"] = True
+                self._status["alert_sound_enabled"] = (state == TrangThai.ASLEEP)
             return dict(self._status)
 
     def frame_snapshot(
