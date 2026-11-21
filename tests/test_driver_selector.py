@@ -42,8 +42,8 @@ def test_non_maximum_suppression_merges_overlapping_faces():
     assert result == (duplicate, separate)
 
 
-def test_selector_retains_driver_id_for_three_seconds_then_recalibrates():
-    selector = BoXacDinhTaiXe()
+def test_selector_retains_driver_id_for_loss_timeout_then_recalibrates():
+    selector = BoXacDinhTaiXe(lost_timeout_seconds=3.0)
     face = _candidate((0.1, 0.2, 0.3, 0.5))
     initial = selector.update((face,), 0.0)
 
