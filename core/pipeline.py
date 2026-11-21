@@ -32,7 +32,12 @@ from core.classifier import (
 from core.driver_selector import BoXacDinhTaiXe, DriverSelection
 from core.fatigue_score import BoDiemMetMoi
 from core.face import FaceLandmarkDetector
-from core.metrics import MovingAverage
+from core.metrics import (
+    INNER_MOUTH_LANDMARK_INDICES,
+    LEFT_EYE_LANDMARK_INDICES,
+    RIGHT_EYE_LANDMARK_INDICES,
+    MovingAverage,
+)
 from core.quality import assess_frame_quality
 from core.state_machine import MayTrangThai
 from core.temporal import BoTheoDoiThoiGian, KetQuaTheoDoiThoiGian
@@ -215,15 +220,38 @@ class DieuKhienGiamSat:
             return None
         if overlay and landmarks:
             height, width = frame.shape[:2]
-            points = [
+
+            # 1. Vẽ khung xanh quanh mặt
+            all_points = [
                 (round(x * width), round(y * height))
                 for x, y, _ in landmarks
             ]
-            left = max(0, min(point[0] for point in points))
-            top = max(0, min(point[1] for point in points))
-            right = min(width - 1, max(point[0] for point in points))
-            bottom = min(height - 1, max(point[1] for point in points))
+            left = max(0, min(p[0] for p in all_points))
+            top = max(0, min(p[1] for p in all_points))
+            right = min(width - 1, max(p[0] for p in all_points))
+            bottom = min(height - 1, max(p[1] for p in all_points))
             cv2.rectangle(frame, (left, top), (right, bottom), (0, 220, 100), 2)
+
+            # 2. Vẽ chấm + đường nối mắt và miệng
+            landmark_groups = (
+                LEFT_EYE_LANDMARK_INDICES,      # mắt trái
+                RIGHT_EYE_LANDMARK_INDICES,     # mắt phải
+                INNER_MOUTH_LANDMARK_INDICES,   # miệng
+            )
+            for indices in landmark_groups:
+                points = [
+                    (
+                        round(landmarks[i][0] * width),
+                        round(landmarks[i][1] * height),
+                    )
+                    for i in indices
+                ]
+                # Nối các điểm thành đường (xanh lá)
+                for start, end in zip(points, points[1:] + points[:1]):
+                    cv2.line(frame, start, end, (0, 255, 0), 2)
+                # Vẽ chấm đỏ tại mỗi landmark
+                for point in points:
+                    cv2.circle(frame, point, 3, (0, 0, 255), -1)
         success, encoded = cv2.imencode(".jpg", frame)
         if not success:
             raise RuntimeError("Không thể mã hóa khung hình camera.")
