@@ -12,6 +12,7 @@ from config import (
     EYES_CLOSED_EAR_BASELINE_RATIO,
     HEAD_NOD_PITCH_DROP_DEGREES,
     YAWN_MAR_BASELINE_MULTIPLIER,
+    YAWN_MAR_MIN_THRESHOLD,
 )
 from core.types import KetQuaPhatHien
 
@@ -115,7 +116,9 @@ class BoHieuChinhCaNhan:
             mar0=mar0,
             pitch0=pitch0,
             ear_closed_threshold=ear0 * EYES_CLOSED_EAR_BASELINE_RATIO,
-            mar_yawn_threshold=mar0 * YAWN_MAR_BASELINE_MULTIPLIER,
+            mar_yawn_threshold=max(
+                mar0 * YAWN_MAR_BASELINE_MULTIPLIER, YAWN_MAR_MIN_THRESHOLD
+            ),
             pitch_nod_threshold=pitch0 - HEAD_NOD_PITCH_DROP_DEGREES,
             valid_frame_count=len(self._samples),
         )

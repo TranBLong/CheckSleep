@@ -21,6 +21,9 @@ PERCLOS_DROWSY_THRESHOLD_PERCENT = 15
 PERCLOS_MIN_WINDOW_SECONDS = 15
 
 YAWN_MAR_BASELINE_MULTIPLIER = 1.4
+# Sàn tuyệt đối cho ngưỡng ngáp, vì MAR0 của người dùng có thể gần 0.
+# Đo thực nghiệm (1 người, webcam laptop): nói/cười tối đa ~0.53, ngáp tối thiểu ~1.36.
+YAWN_MAR_MIN_THRESHOLD = 0.9
 YAWN_MIN_DURATION_SECONDS = 2
 YAWN_FATIGUED_COUNT_MIN = 2
 YAWN_FATIGUED_WINDOW_SECONDS = 5 * 60
@@ -106,7 +109,8 @@ FEATURE_MIN_LAPLACIAN_VARIANCE = 4.0
 FEATURE_ROI_PADDING_RATIO = 1.5
 
 CLASSIFIER_MODE = "cnn"
-CNN_EYE_CLOSED_THRESHOLD = 0.5
+# Ngưỡng xác suất mắt nhắm của CNN (nâng lên 0.7 để tránh báo động giả khi cười/híp mắt ~0.59)
+CNN_EYE_CLOSED_THRESHOLD = 0.7
 CNN_MOUTH_YAWN_THRESHOLD = 0.5
 # Padding crop mắt gần với ảnh MRL (cắt sát); miệng giữ 1.5 như lúc train.
 CNN_EYE_CROP_PADDING_RATIO = 0.4

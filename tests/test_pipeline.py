@@ -105,6 +105,7 @@ def test_pipeline_opens_camera_only_after_start_and_releases_it():
         camera_factory=lambda: FakeCamera(opened, closed),
         detector_factory=lambda: FakeDetector(processed),
         clock=AdvancingClock(),
+        classifier_mode="baseline",
     )
 
     assert not opened.is_set()
@@ -132,7 +133,10 @@ def test_pipeline_reports_camera_startup_error():
         def close(self):
             pass
 
-    pipeline = DieuKhienGiamSat(camera_factory=BrokenCamera)
+    pipeline = DieuKhienGiamSat(
+        camera_factory=BrokenCamera,
+        classifier_mode="baseline",
+    )
 
     assert pipeline.start() is True
     assert _wait_for(lambda: pipeline.snapshot()["error"] is not None)
@@ -161,6 +165,7 @@ def test_pipeline_stops_cleanly_when_finite_source_returns_no_frame():
         camera_factory=lambda: camera,
         detector_factory=lambda: FakeDetector(processed),
         clock=AdvancingClock(),
+        classifier_mode="baseline",
     )
 
     assert pipeline.start()
@@ -201,6 +206,7 @@ def test_pipeline_calibrates_from_driver_face_only_when_two_faces_are_present():
         camera_factory=lambda: FakeCamera(opened, closed),
         detector_factory=TwoFaceDetector,
         clock=AdvancingClock(),
+        classifier_mode="baseline",
     )
 
     assert pipeline.start()
@@ -235,6 +241,7 @@ def test_pipeline_reports_low_quality_and_becomes_unknown_after_sustained_loss()
         camera_factory=lambda: camera,
         detector_factory=lambda: FakeDetector(detector_processed),
         clock=AdvancingClock(),
+        classifier_mode="baseline",
     )
 
     assert pipeline.start()
@@ -429,6 +436,7 @@ def test_pipeline_stops_when_client_heartbeat_times_out():
         camera_factory=lambda: FakeCamera(opened, closed),
         detector_factory=lambda: FakeDetector(processed),
         clock=lambda: clock_value["value"],
+        classifier_mode="baseline",
     )
 
     assert pipeline.start(session_id=1)
@@ -471,6 +479,7 @@ def test_pipeline_persists_emitted_alert_and_highest_session_state():
         camera_factory=lambda: FakeCamera(opened, closed),
         detector_factory=lambda: ChangingDetector(Event()),
         clock=AdvancingClock(),
+        classifier_mode="baseline",
         on_alert=save_alert,
         on_session_end=save_session,
     )
@@ -505,6 +514,7 @@ def test_pipeline_continues_when_on_alert_raises():
         camera_factory=lambda: FakeCamera(opened, closed),
         detector_factory=lambda: RaisingAlertDetector(processed),
         clock=AdvancingClock(),
+        classifier_mode="baseline",
         on_alert=broken_on_alert,
     )
 

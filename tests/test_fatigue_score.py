@@ -50,7 +50,7 @@ def test_asleep_floor():
     assert apply_asleep_floor(40.0, TrangThai.ASLEEP) == pytest.approx(
         FATIGUE_SCORE_ASLEEP_FLOOR
     )
-    assert apply_asleep_floor(95.0, TrangThai.ASLEEP) == pytest.approx(95.0)
+    assert apply_asleep_floor(95.0, TrangThai.ASLEEP, floor=90.0) == pytest.approx(95.0)
     assert apply_asleep_floor(40.0, TrangThai.ALERT) == pytest.approx(40.0)
 
 

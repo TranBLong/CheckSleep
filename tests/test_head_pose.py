@@ -51,7 +51,7 @@ def test_estimates_neutral_pose_from_projected_landmarks():
 
 
 def test_downward_nod_reduces_pitch():
-    downward_nod = np.array([[np.deg2rad(20.0)], [0.0], [0.0]])
+    downward_nod = np.array([[np.deg2rad(-20.0)], [0.0], [0.0]])
     pose = estimate_head_pose(_project_landmarks(downward_nod), 640, 480)
 
     assert pose.pitch == pytest.approx(-20.0, abs=0.1)

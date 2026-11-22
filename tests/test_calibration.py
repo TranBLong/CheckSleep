@@ -109,3 +109,17 @@ def test_has_valid_baseline_rejects_ear0_outside_range():
         calibration_ok.add_sample(_result(ear=ear, mar=1.0, pitch=0.0), t)
     assert calibration_ok.has_valid_baseline
     assert CALIBRATION_EAR0_MIN <= 0.30 <= CALIBRATION_EAR0_MAX
+
+
+def test_calibration_enforces_yawn_mar_min_threshold():
+    from config import YAWN_MAR_MIN_THRESHOLD
+
+    calibration = BoHieuChinhCaNhan(duration_seconds=5, minimum_valid_frames=3)
+    calibration.start(0.0)
+    for t in (1.0, 2.0, 3.0):
+        calibration.add_sample(_result(ear=0.3, mar=0.01, pitch=0.0), t)
+    result = calibration.finish(5.0)
+
+    assert result.mar0 == pytest.approx(0.01)
+    assert result.mar_yawn_threshold == pytest.approx(YAWN_MAR_MIN_THRESHOLD)
+    assert result.mar_yawn_threshold == pytest.approx(0.9)

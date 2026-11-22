@@ -54,13 +54,15 @@ class MoHinhPhatHien:
             raise FileNotFoundError(f"Không tìm thấy mô hình TFLite: {model_path}")
         if interpreter_factory is None:
             try:
-                from tensorflow.lite import Interpreter
-            except ImportError as exc:
+                import tensorflow as tf
+
+                interpreter_factory = tf.lite.Interpreter
+            except (ImportError, AttributeError) as exc:
                 raise RuntimeError(
-                    "CNN yêu cầu TensorFlow để nạp mô hình TFLite. "
-                    "Cài dependency tensorflow hoặc chọn CLASSIFIER_MODE='baseline'."
+                    "Không nạp được TensorFlow Lite Interpreter "
+                    f"({exc}). Kiểm tra cài đặt tensorflow hoặc chọn "
+                    "CLASSIFIER_MODE='baseline'."
                 ) from exc
-            interpreter_factory = Interpreter
 
         try:
             interpreter = interpreter_factory(model_path=str(model_path))

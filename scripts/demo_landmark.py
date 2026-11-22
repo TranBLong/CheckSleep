@@ -66,6 +66,7 @@ def main() -> None:
                     if CAMERA_FLIP_HORIZONTAL:
                         frame = cv2.flip(frame, 1)
                     result = detector.process(frame)
+                    clean_frame = frame.copy()
                     if result.landmarks is not None:
                         _draw_landmark_groups(frame, result.landmarks)
                         if result.ear is not None and result.mar is not None:
@@ -108,7 +109,7 @@ def main() -> None:
                     key = cv2.waitKey(1) & 0xFF
                     if key in (ord("s"), ord("S")) and result.landmarks is not None:
                         _save_eye_crops(
-                            frame,
+                            clean_frame,
                             result.landmarks,
                             Path("instance/debug_eye_crops"),
                             int(now * 1000) % 10000,

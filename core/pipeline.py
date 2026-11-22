@@ -612,6 +612,10 @@ class DieuKhienGiamSat:
                     mar=measured.mar if measured else None,
                     pitch=measured.pitch if measured else None,
                     perclos=temporal_result.perclos_percent,
+                    long_blink_count=temporal_result.long_blink_count_60s,
+                    yawn_count_5m=temporal_result.yawn_count_5m,
+                    yawn_count_10m=temporal_result.yawn_count_10m,
+                    nod_count=temporal_result.nod_count_60s,
                     fatigue_score=fatigue_score,
                     partial_data=(
                         temporal_result.partial_data
@@ -770,6 +774,10 @@ class DieuKhienGiamSat:
             "ear": None,
             "mar": None,
             "perclos": None,
+            "long_blink_count": 0,
+            "yawn_count_5m": 0,
+            "yawn_count_10m": 0,
+            "nod_count": 0,
             "pitch": None,
             "fps": 0.0,
             "fatigue_score": None,

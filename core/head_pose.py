@@ -75,7 +75,7 @@ def estimate_head_pose(
         raise ValueError("Could not estimate head pose from the landmarks.")
 
     rotation_matrix, _ = cv2.Rodrigues(rotation_vector)
-    pitch = -degrees(atan2(rotation_matrix[2, 1], rotation_matrix[2, 2]))
+    pitch = degrees(atan2(rotation_matrix[2, 1], rotation_matrix[2, 2]))
     yaw = degrees(
         atan2(
             -rotation_matrix[2, 0],
