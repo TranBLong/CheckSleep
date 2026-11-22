@@ -26,6 +26,10 @@ LANDMARK_GROUPS = (
     INNER_MOUTH_LANDMARK_INDICES,
 )
 
+# Bật/tắt hiển thị toàn bộ điểm khuôn mặt (giống Flask)
+SHOW_FULL_FACE = True
+SHOW_EYE_MOUTH = True  # bật/tắt đường xanh + chấm đỏ mắt/miệng
+
 
 def _save_eye_crops(frame, landmarks, out_dir: Path, index: int) -> None:
     """Save local eye crops for visual inspection; files stay on this machine."""
@@ -38,23 +42,42 @@ def _save_eye_crops(frame, landmarks, out_dir: Path, index: int) -> None:
         cv2.imwrite(str(out_dir / f"eye_{index:04d}_{eye_index}.png"), crop)
 
 
-def _draw_landmark_groups(frame, landmarks) -> None:
+def _draw_landmark_groups(
+    frame,
+    landmarks,
+    show_full_face: bool = True,
+    show_eye_mouth: bool = True,
+) -> None:
+    """Vẽ landmarks: full face + (tuỳ chọn) mắt/miệng nổi bật."""
     height, width = frame.shape[:2]
-    for indices in LANDMARK_GROUPS:
-        points = [
-            (
-                round(landmarks[index][0] * width),
-                round(landmarks[index][1] * height),
-            )
-            for index in indices
-        ]
-        for start, end in zip(points, points[1:] + points[:1]):
-            cv2.line(frame, start, end, (0, 255, 0), 2)
+    points = [
+        (round(x * width), round(y * height))
+        for x, y, *_ in landmarks
+    ]
+
+    # 1. Toàn bộ điểm Face Mesh
+    if show_full_face:
         for point in points:
-            cv2.circle(frame, point, 3, (0, 0, 255), -1)
+            cv2.circle(frame, point, 1, (0, 255, 255), -1)
+
+    # 2. Mắt + miệng (đường xanh + chấm đỏ)
+    if show_eye_mouth:
+        for indices in LANDMARK_GROUPS:
+            group = [
+                (
+                    round(landmarks[i][0] * width),
+                    round(landmarks[i][1] * height),
+                )
+                for i in indices
+            ]
+            for start, end in zip(group, group[1:] + group[:1]):
+                cv2.line(frame, start, end, (0, 255, 0), 1)
+            for p in group:
+                cv2.circle(frame, p, 2, (0, 0, 255), -1)
 
 
 def main() -> None:
+    global SHOW_FULL_FACE, SHOW_EYE_MOUTH
     last_console_output = 0.0
     try:
         with QuanLyCamera(CAMERA_INDEX) as camera:
@@ -68,7 +91,12 @@ def main() -> None:
                     result = detector.process(frame)
                     clean_frame = frame.copy()
                     if result.landmarks is not None:
-                        _draw_landmark_groups(frame, result.landmarks)
+                        _draw_landmark_groups(
+                            frame,
+                            result.landmarks,
+                            show_full_face=SHOW_FULL_FACE,
+                            show_eye_mouth=SHOW_EYE_MOUTH,
+                        )
                         if result.ear is not None and result.mar is not None:
                             status = f"EAR: {result.ear:.3f}  MAR: {result.mar:.3f}"
                         else:
@@ -105,7 +133,10 @@ def main() -> None:
                         (0, 255, 0),
                         2,
                     )
-                    cv2.imshow("DrowsyGuard - landmark demo (S luu crop, Q thoat)", frame)
+                    cv2.imshow(
+                        "DrowsyGuard - landmark demo (L full-face, E eye/mouth, S crop, Q thoat)",
+                        frame,
+                    )
                     key = cv2.waitKey(1) & 0xFF
                     if key in (ord("s"), ord("S")) and result.landmarks is not None:
                         _save_eye_crops(
@@ -114,6 +145,12 @@ def main() -> None:
                             Path("instance/debug_eye_crops"),
                             int(now * 1000) % 10000,
                         )
+                    if key in (ord("l"), ord("L")):
+                        SHOW_FULL_FACE = not SHOW_FULL_FACE
+                        print(f"Full-face landmarks: {'ON' if SHOW_FULL_FACE else 'OFF'}")
+                    if key in (ord("e"), ord("E")):
+                        SHOW_EYE_MOUTH = not SHOW_EYE_MOUTH
+                        print(f"Eye/Mouth outlines: {'ON' if SHOW_EYE_MOUTH else 'OFF'}")
                     if key in (ord("q"), ord("Q"), 27):
                         break
     finally:
