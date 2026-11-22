@@ -118,7 +118,7 @@ Chất lượng khung hình được kiểm tra bằng độ sáng trung bình v
 
 Đặt project tại `MyDrive/DrowsyGuard`, tải và giải nén MRL Eye/YawDD thủ công vào Drive, rồi mở `ml/train_eye_cnn.ipynb` và `ml/train_mouth_cnn.ipynb` bằng Colab. Notebook không tải dataset; hãy kiểm tra cấu hình parser nhãn/subject trước khi chạy. YawDD cần map rõ video ngáp/không ngáp và subject ID; notebook dừng nếu không xác định được. Kết quả được đánh giá trên test split theo người và xuất thành `models/eye_classifier.tflite`, `models/mouth_classifier.tflite`. Chưa có model hoặc số đo thực tế trong repo.
 
-Ứng dụng mặc định dùng baseline EAR/MAR. Để dùng CNN, cài TensorFlow theo `requirements.txt`, đặt `models/eye_classifier.tflite` và đổi `CLASSIFIER_MODE = "cnn"` trong `config.py`. Model miệng là tùy chọn: chỉ cần `models/mouth_classifier.tflite` khi `CNN_USE_MOUTH_MODEL = True` (mặc định `False`). Nếu thiếu/không nạp được model bắt buộc, pipeline báo lỗi rõ ràng thay vì tự fallback.
+Ứng dụng mặc định dùng CNN (`CLASSIFIER_MODE = "cnn"`): cài TensorFlow theo `requirements.txt` và dùng model mắt `models/eye_classifier.tflite` (đã có trong repo). Nếu thiếu/không nạp được model bắt buộc, pipeline báo lỗi rõ khi bắt đầu, không tự fallback. Để dùng baseline EAR/MAR, đổi `CLASSIFIER_MODE = "baseline"` trong `config.py`. Model miệng tùy chọn: chỉ cần `models/mouth_classifier.tflite` khi `CNN_USE_MOUTH_MODEL = True` (mặc định `False`).
 
 Trong demo landmark, nhấn `S` để lưu crop hai mắt vào `instance/debug_eye_crops/` nhằm kiểm tra trực quan trên máy cục bộ; nhấn `Q` để thoát. Crop mắt dùng `CNN_EYE_CROP_PADDING_RATIO` trong `config.py`.
 

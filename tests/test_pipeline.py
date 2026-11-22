@@ -530,3 +530,44 @@ def test_pipeline_continues_when_on_alert_raises():
     assert "Không lưu được cảnh báo vào CSDL" in (status["message"] or "")
     assert pipeline.stop() is True
     assert closed.is_set()
+
+
+def test_acknowledge_from_web_thread_does_not_stop_pipeline_on_timestamp_race():
+    """Web acknowledge requests are applied using the camera thread's timestamp."""
+    opened = Event()
+    closed = Event()
+    processed = Event()
+
+    class SlowFakeCamera(FakeCamera):
+        def read(self):
+            time.sleep(0.02)
+            return super().read()
+
+    pipeline = DieuKhienGiamSat(
+        camera_factory=lambda: SlowFakeCamera(opened, closed),
+        detector_factory=lambda: FakeDetector(processed),
+        clock=AdvancingClock(),
+        classifier_mode="baseline",
+    )
+
+    assert pipeline.start() is True
+    assert opened.wait(1)
+    assert processed.wait(1)
+    assert _wait_for(lambda: pipeline.snapshot()["calibration"] is not None, timeout=3.0)
+
+    for _ in range(15):
+        status = pipeline.acknowledge()
+        assert status["alert_acknowledged"] is True
+        time.sleep(0.01)
+
+    snap = pipeline.snapshot()
+    assert snap["running"] is True
+    assert snap["error"] is None
+    assert "Timestamps must not move backwards" not in (snap["message"] or "")
+    assert "Không thể tiếp tục giám sát" not in (snap["message"] or "")
+
+    assert pipeline.stop() is True
+    assert closed.is_set()
+    final = pipeline.snapshot()
+    assert final["running"] is False
+    assert final["error"] is None

@@ -1,6 +1,9 @@
 import pytest
 
-from config import FACE_TRACKING_LOSS_UNKNOWN_SECONDS
+from config import (
+    FACE_TRACKING_LOSS_UNKNOWN_SECONDS,
+    QUALITY_LOSS_UNKNOWN_SECONDS,
+)
 from core.state_machine import MayTrangThai
 from core.temporal import KetQuaTheoDoiThoiGian
 from core.types import TrangThai
@@ -112,18 +115,46 @@ def test_asleep_deescalates_step_by_step_when_candidate_stays_fatigued():
     assert machine.update(91.0, fatigued, has_face=True, quality_ok=True) == TrangThai.FATIGUED
 
 
-def test_low_quality_immediately_sets_unknown_and_valid_data_recovers():
+def test_low_quality_becomes_unknown_only_after_sustained_duration():
     machine = MayTrangThai()
     machine.update(0.0, _metrics(perclos=15.0), has_face=True, quality_ok=True)
 
     assert (
-        machine.update(1.0, _metrics(perclos=15.0), has_face=True, quality_ok=False)
+        machine.update(
+            1.0,
+            _metrics(perclos=15.0),
+            has_face=True,
+            quality_ok=False,
+        )
+        == TrangThai.DROWSY
+    )
+    assert (
+        machine.update(
+            1.0 + QUALITY_LOSS_UNKNOWN_SECONDS,
+            _metrics(perclos=15.0),
+            has_face=True,
+            quality_ok=False,
+        )
+        == TrangThai.DROWSY
+    )
+    assert (
+        machine.update(
+            1.0 + QUALITY_LOSS_UNKNOWN_SECONDS + 0.01,
+            _metrics(perclos=15.0),
+            has_face=True,
+            quality_ok=False,
+        )
         == TrangThai.UNKNOWN
     )
-    assert machine.update(2.0, _metrics(), has_face=True, quality_ok=True) == TrangThai.ALERT
+    assert machine.update(
+        2.0 + QUALITY_LOSS_UNKNOWN_SECONDS,
+        _metrics(),
+        has_face=True,
+        quality_ok=True,
+    ) == TrangThai.ALERT
 
 
-def test_face_loss_becomes_unknown_only_after_more_than_three_seconds():
+def test_face_loss_becomes_unknown_only_after_configured_seconds():
     machine = MayTrangThai()
     machine.update(0.0, _metrics(), has_face=True, quality_ok=True)
 

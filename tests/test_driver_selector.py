@@ -1,5 +1,6 @@
 import pytest
 
+from config import FACE_TRACKING_LOSS_UNKNOWN_SECONDS
 from core.driver_selector import (
     BoXacDinhTaiXe,
     non_maximum_suppression,
@@ -43,13 +44,13 @@ def test_non_maximum_suppression_merges_overlapping_faces():
 
 
 def test_selector_retains_driver_id_for_loss_timeout_then_recalibrates():
-    selector = BoXacDinhTaiXe(lost_timeout_seconds=3.0)
+    selector = BoXacDinhTaiXe(lost_timeout_seconds=FACE_TRACKING_LOSS_UNKNOWN_SECONDS)
     face = _candidate((0.1, 0.2, 0.3, 0.5))
     initial = selector.update((face,), 0.0)
 
-    held = selector.update((), 3.0)
-    expired = selector.update((), 3.01)
-    reacquired = selector.update((face,), 3.1)
+    held = selector.update((), float(FACE_TRACKING_LOSS_UNKNOWN_SECONDS))
+    expired = selector.update((), float(FACE_TRACKING_LOSS_UNKNOWN_SECONDS) + 0.01)
+    reacquired = selector.update((face,), float(FACE_TRACKING_LOSS_UNKNOWN_SECONDS) + 0.1)
 
     assert held.driver_id == initial.driver_id
     assert held.detection is None

@@ -140,6 +140,7 @@ class DieuKhienGiamSat:
         self._last_client_status_at: float | None = None
         self._metric_buffer: list[dict] = []
         self._last_metric_log_at: float | None = None
+        self._ack_requested = False
         self._status = self._empty_status()
 
     def start(self, session_id: int | None = None) -> bool:
@@ -160,6 +161,7 @@ class DieuKhienGiamSat:
             self._last_client_status_at = None
             self._alerts = BoDieuKhienCanhBao()
             self._alert_sequence = 0
+            self._ack_requested = False
             self._status = self._empty_status()
             self._status.update(
                 session_started=True,
@@ -197,18 +199,12 @@ class DieuKhienGiamSat:
             self._last_client_status_at = self._clock()
 
     def acknowledge(self) -> dict:
-        """Acknowledge the currently active alert without muting level three."""
+        """Yêu cầu xác nhận cảnh báo; camera thread áp dụng theo timestamp của nó."""
         with self._lock:
             state = TrangThai(self._status["state"])
-            try:
-                result = self._alerts.acknowledge(self._clock(), state)
-                self._status["alert_acknowledged"] = result.acknowledged
-                self._status["alert_sound_enabled"] = result.sound_enabled
-            except ValueError:
-                # Timestamp lệch do race condition giữa luồng camera và luồng web:
-                # Vẫn ghi nhận acknowledged an toàn và không tắt âm mức 3 (ASLEEP).
-                self._status["alert_acknowledged"] = True
-                self._status["alert_sound_enabled"] = (state == TrangThai.ASLEEP)
+            self._ack_requested = True
+            self._status["alert_acknowledged"] = True
+            self._status["alert_sound_enabled"] = state == TrangThai.ASLEEP
             return dict(self._status)
 
     def frame_snapshot(
@@ -571,7 +567,7 @@ class DieuKhienGiamSat:
                 timestamp,
                 temporal_result,
                 has_face=has_face,
-                quality_ok=True,
+                quality_ok=frame_quality.accepted,
             )
             fatigue_score = fatigue_meter.update(
                 temporal_result.perclos_percent
@@ -595,6 +591,13 @@ class DieuKhienGiamSat:
             ):
                 temporal.reset_windows()
             previous_state = state
+            # Áp dụng yêu cầu xác nhận bằng timestamp của luồng camera.
+            with self._lock:
+                do_ack = self._ack_requested
+                if do_ack:
+                    self._ack_requested = False
+            if do_ack:
+                alerts.acknowledge(timestamp, state)
             alert = alerts.evaluate(timestamp, state)
             with self._lock:
                 if _STATE_SEVERITY[state] > _STATE_SEVERITY[self._highest_state]:

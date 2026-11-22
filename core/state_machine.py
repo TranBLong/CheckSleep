@@ -9,6 +9,7 @@ from config import (
     LONG_BLINK_FATIGUED_COUNT_MIN,
     PERCLOS_DROWSY_THRESHOLD_PERCENT,
     PERCLOS_FATIGUED_THRESHOLD_PERCENT,
+    QUALITY_LOSS_UNKNOWN_SECONDS,
     STATE_DEESCALATION_NORMAL_DURATION_SECONDS,
     YAWN_DROWSY_COUNT_MIN,
     YAWN_DROWSY_REQUIRES_OTHER_SIGN,
@@ -33,6 +34,7 @@ class MayTrangThai:
         self.state = TrangThai.UNKNOWN
         self._last_timestamp: float | None = None
         self._face_missing_since: float | None = None
+        self._quality_bad_since: float | None = None
         self._normal_since: float | None = None
 
     def reset(self) -> None:
@@ -40,6 +42,7 @@ class MayTrangThai:
         self.state = TrangThai.UNKNOWN
         self._last_timestamp = None
         self._face_missing_since = None
+        self._quality_bad_since = None
         self._normal_since = None
 
     def update(
@@ -60,10 +63,18 @@ class MayTrangThai:
         self._last_timestamp = timestamp_seconds
 
         if not quality_ok:
+            if self._quality_bad_since is None:
+                self._quality_bad_since = timestamp_seconds
             self._face_missing_since = None
             self._normal_since = None
-            self.state = TrangThai.UNKNOWN
+            if (
+                timestamp_seconds - self._quality_bad_since
+                > QUALITY_LOSS_UNKNOWN_SECONDS
+            ):
+                self.state = TrangThai.UNKNOWN
             return self.state
+
+        self._quality_bad_since = None
 
         if not has_face:
             if self._face_missing_since is None:
