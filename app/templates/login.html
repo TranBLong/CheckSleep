@@ -15,6 +15,7 @@
           {% for category, message in messages %}<p class="notice {{ category }}">{{ message }}</p>{% endfor %}
         {% endwith %}
         <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <label>Tên đăng nhập<input name="username" autocomplete="username" required></label>
           <label>Mật khẩu<input name="password" type="password" autocomplete="current-password" required></label>
           <button type="submit">Đăng nhập</button>

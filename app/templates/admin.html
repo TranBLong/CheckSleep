@@ -14,7 +14,10 @@
           <a href="{{ url_for('monitor.monitor') }}">Giám sát</a>
           <a href="{{ url_for('history.history') }}">Lịch sử</a>
           <a href="{{ url_for('admin.dashboard') }}">Thống kê</a>
-          <a href="{{ url_for('auth.logout') }}">Đăng xuất</a>
+          <form class="inline-form" method="post" action="{{ url_for('auth.logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit">Đăng xuất</button>
+          </form>
         </nav>
       </header>
       <section class="site-card">
@@ -55,10 +58,12 @@
                       <td>
                         {% if account.BiKhoa %}
                           <form class="inline-form" method="post" action="{{ url_for('admin.change_account_lock', user_id=account.MaND, action='unlock') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                             <button type="submit">Mở khóa</button>
                           </form>
                         {% else %}
                           <form class="inline-form" method="post" action="{{ url_for('admin.change_account_lock', user_id=account.MaND, action='lock') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                             <button type="submit" {% if account.VaiTro == "Admin" and account.MaND|string == current_user.id %}disabled title="Không thể tự khóa tài khoản Admin hiện tại"{% endif %}>Khóa</button>
                           </form>
                         {% endif %}

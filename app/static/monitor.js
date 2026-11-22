@@ -157,10 +157,14 @@
     render(await response.json());
   }
 
+  function csrfHeaders() {
+    const token = document.querySelector('meta[name="csrf-token"]')?.content || "";
+    return { "Content-Type": "application/json", "X-CSRF-Token": token };
+  }
+
   async function post(path, payload = null) {
-    const options = { method: "POST" };
+    const options = { method: "POST", headers: csrfHeaders() };
     if (payload) {
-      options.headers = { "Content-Type": "application/json" };
       options.body = JSON.stringify(payload);
     }
     const response = await fetch(path, options);

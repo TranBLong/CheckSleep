@@ -97,7 +97,7 @@ def register():
     return render_template("register.html")
 
 
-@auth_bp.get("/logout")
+@auth_bp.post("/logout")
 def logout():
     if current_user.is_authenticated:
         logout_user()

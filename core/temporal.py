@@ -89,13 +89,24 @@ class BoTheoDoiThoiGian:
         self._last_timestamp = timestamp_seconds
         self._prune_events(timestamp_seconds)
         if not valid:
-            self._reset_continuous_indicators()
+            # Mất mặt khi đang cúi: tiếp tục tính thời gian cúi đã quan sát.
+            prolonged_bow = False
+            if self._nod_since is not None:
+                prolonged_bow = (
+                    timestamp_seconds - self._nod_since
+                    >= HEAD_BOW_ASLEEP_DURATION_SECONDS
+                )
+                self._eye_closed_since = None
+                self._mouth_yawn_since = None
+                self._yawn_counted_for_current_event = False
+            else:
+                self._reset_continuous_indicators()
             return self._result(
                 timestamp_seconds,
                 eyes_closed_duration=None,
                 eyes_closed_asleep=False,
                 perclos_percent=self._perclos_percent(),
-                prolonged_bow=False,
+                prolonged_bow=prolonged_bow,
                 has_valid_data=False,
                 partial_data=False,
             )

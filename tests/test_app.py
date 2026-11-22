@@ -3,6 +3,22 @@ from services.admin_service import AdminActionError
 from werkzeug.security import generate_password_hash
 
 
+def _csrf_headers(client):
+    client.get("/login")
+    with client.session_transaction() as sess:
+        token = sess.get("csrf_token") or ""
+    return {"X-CSRF-Token": token}
+
+
+def _csrf_form(client, data):
+    client.get("/login")
+    with client.session_transaction() as sess:
+        token = sess.get("csrf_token") or ""
+    payload = dict(data)
+    payload["csrf_token"] = token
+    return payload
+
+
 def test_app_initializes_and_renders_home_page():
     app = create_app()
     response = app.test_client().get("/")
@@ -294,3 +310,47 @@ def test_video_feed_streams_jpeg_with_requested_overlay():
     assert b"Content-Type: image/jpeg" in response.data
     assert b"jpeg-data" in response.data
     assert pipeline.overlay_requested is True
+
+
+def _csrf_enabled_app():
+    users = FakeUserService()
+    return create_app({
+        "TESTING": True,
+        "CSRF_ENABLED": True,
+        "SECRET_KEY": "test-key-only",
+        "MONITOR_PIPELINE_FACTORY": FakePipeline,
+        "USER_SERVICE": users,
+        "SESSION_SERVICE": FakeSessionService(),
+        "ALERT_SERVICE": FakeAlertService(),
+        "ADMIN_SERVICE": FakeAdminService(users),
+    })
+
+
+def test_post_without_csrf_token_rejected_when_enabled():
+    client = _csrf_enabled_app().test_client()
+    client.get("/login")
+    rejected = client.post(
+        "/login", data={"username": "driver", "password": "any"}
+    )
+    assert rejected.status_code == 400
+
+    accepted = client.post(
+        "/login",
+        data=_csrf_form(client, {"username": "driver", "password": "any"}),
+    )
+    assert accepted.status_code == 302
+
+
+def test_api_post_requires_csrf_header_when_enabled():
+    client = _csrf_enabled_app().test_client()
+    assert client.post(
+        "/login",
+        data=_csrf_form(client, {"username": "driver", "password": "any"}),
+    ).status_code == 302
+    assert client.post("/api/start", json={"consent": True}).status_code == 400
+    accepted = client.post(
+        "/api/start",
+        json={"consent": True},
+        headers=_csrf_headers(client),
+    )
+    assert accepted.status_code == 202

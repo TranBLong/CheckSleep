@@ -15,6 +15,7 @@
           {% for category, message in messages %}<p class="notice {{ category }}">{{ message }}</p>{% endfor %}
         {% endwith %}
         <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <label>Họ tên<input name="full_name" autocomplete="name" required></label>
           <label>Tên đăng nhập<input name="username" autocomplete="username" maxlength="50" required></label>
           <label>Số điện thoại (không bắt buộc)<input name="phone" type="tel" autocomplete="tel" maxlength="20"></label>

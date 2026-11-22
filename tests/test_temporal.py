@@ -222,3 +222,63 @@ def test_tracker_rejects_timestamp_that_moves_backwards():
 
     with pytest.raises(ValueError, match="move backwards"):
         _update(tracker, 1.0)
+
+
+def test_face_loss_while_bowing_reaches_prolonged_bow():
+    from config import HEAD_NOD_PITCH_DROP_DEGREES
+
+    tracker = BoTheoDoiThoiGian(pitch0=0.0)
+    low_pitch = -HEAD_NOD_PITCH_DROP_DEGREES - 1.0
+    _update(tracker, 0.0, pitch=low_pitch)
+    early = _update(
+        tracker,
+        HEAD_BOW_ASLEEP_DURATION_SECONDS - 0.1,
+        eyes_closed=None,
+        mouth_yawn=None,
+        pitch=None,
+        valid=False,
+    )
+    assert early.prolonged_bow is False
+    assert early.has_valid_data is False
+
+    asleep = _update(
+        tracker,
+        HEAD_BOW_ASLEEP_DURATION_SECONDS,
+        eyes_closed=None,
+        mouth_yawn=None,
+        pitch=None,
+        valid=False,
+    )
+    assert asleep.prolonged_bow is True
+
+
+def test_face_loss_without_prior_bow_does_not_set_prolonged_bow():
+    tracker = BoTheoDoiThoiGian(pitch0=0.0)
+    _update(tracker, 0.0, pitch=0.0)
+    lost = _update(
+        tracker,
+        HEAD_BOW_ASLEEP_DURATION_SECONDS + 1.0,
+        eyes_closed=None,
+        mouth_yawn=None,
+        pitch=None,
+        valid=False,
+    )
+    assert lost.prolonged_bow is False
+    assert lost.has_valid_data is False
+
+
+def test_short_bow_then_face_loss_under_threshold_not_prolonged():
+    from config import HEAD_NOD_PITCH_DROP_DEGREES
+
+    tracker = BoTheoDoiThoiGian(pitch0=0.0)
+    low_pitch = -HEAD_NOD_PITCH_DROP_DEGREES - 1.0
+    _update(tracker, 0.0, pitch=low_pitch)
+    result = _update(
+        tracker,
+        HEAD_BOW_ASLEEP_DURATION_SECONDS - 0.5,
+        eyes_closed=None,
+        mouth_yawn=None,
+        pitch=None,
+        valid=False,
+    )
+    assert result.prolonged_bow is False

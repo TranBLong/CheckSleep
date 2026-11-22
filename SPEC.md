@@ -59,6 +59,7 @@ Màn Giám sát tối giản, chữ lớn, nút Bắt đầu/Dừng lớn (ít x
 13. *Cho* chuỗi giả lập, *khi* mắt nhắm liên tục ≥ 2 s, *thì* trạng thái → `Ngủ gật` ngay, từ bất kỳ trạng thái nào.
 14. *Cho* chuỗi giả lập, *khi* `MAR > 1.4×MAR0` kéo dài ≥ 2 s, *thì* tính 1 lần ngáp; nói chuyện (MAR dao động nhanh) **không** tính.
 15. *Cho* chuỗi giả lập, *khi* pitch giảm ≥ 15° so với `pitch0` trong ≥ 1 s rồi hồi phục, *thì* tính 1 lần gật; cúi ≥ 2 s không hồi phục → `Ngủ gật`.
+   Khi mất tracking ngay trong lúc đang cúi (pitch dưới ngưỡng gật), hệ thống được phép cộng dồn thời gian mất mặt vào thời gian cúi; đủ ≥ 2 s thì chuyển `Ngủ gật`.
 16. *Cho* cửa sổ 60 s, *khi* tính PERCLOS = khung nhắm / tổng khung × 100%, *thì* kết quả khớp phép tính tay trên dữ liệu mẫu.
 17. *Cho* khuôn mặt bị che một phần (khẩu trang / kính râm), *khi* xử lý, *thì* bỏ chỉ số bị che, dùng chỉ số còn lại, hiển thị "dữ liệu một phần"; che hết → `Không xác định`.
 

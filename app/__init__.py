@@ -21,6 +21,8 @@ def create_app(test_config=None):
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY") or secrets.token_hex(32)
     if test_config:
         app.config.update(test_config)
+    if "CSRF_ENABLED" not in app.config:
+        app.config["CSRF_ENABLED"] = not bool(app.config.get("TESTING"))
 
     users = app.config.get("USER_SERVICE") or UserService()
     sessions = app.config.get("SESSION_SERVICE") or SessionService()
@@ -101,6 +103,41 @@ def create_app(test_config=None):
     app.register_blueprint(admin_bp)
     app.register_blueprint(history_bp)
     app.register_blueprint(monitor_bp)
+
+    def _ensure_csrf_token():
+        from flask import session
+
+        token = session.get("csrf_token")
+        if not token:
+            token = secrets.token_hex(32)
+            session["csrf_token"] = token
+        return token
+
+    @app.context_processor
+    def inject_csrf_token():
+        if not app.config.get("CSRF_ENABLED", True):
+            return {"csrf_token": ""}
+        return {"csrf_token": _ensure_csrf_token()}
+
+    @app.before_request
+    def verify_csrf():
+        from flask import session
+
+        if not app.config.get("CSRF_ENABLED", True):
+            return None
+        if request.method not in ("POST", "PUT", "DELETE", "PATCH"):
+            return None
+        expected = session.get("csrf_token") or _ensure_csrf_token()
+        submitted = request.headers.get("X-CSRF-Token") or request.form.get(
+            "csrf_token"
+        )
+        if not submitted or not secrets.compare_digest(
+            str(submitted), str(expected)
+        ):
+            if request.path.startswith("/api/") or request.is_json:
+                return jsonify(error="CSRF token không hợp lệ hoặc thiếu."), 400
+            return "CSRF token không hợp lệ hoặc thiếu.", 400
+        return None
 
     @app.get("/")
     def home():
