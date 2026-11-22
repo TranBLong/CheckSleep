@@ -316,7 +316,8 @@ def compute_binary_metrics(actual, probabilities):
         false_positive_rates.append(
             np.sum(prediction & (actual == 0)) / np.sum(actual == 0)
         )
-    roc_auc = float(np.trapz(true_positive_rates, false_positive_rates))
+    _trapezoid = getattr(np, "trapezoid", None) or np.trapz
+    roc_auc = float(_trapezoid(true_positive_rates, false_positive_rates))
     return {
         "confusion_matrix": confusion,
         "per_class": per_class,

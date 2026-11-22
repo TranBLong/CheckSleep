@@ -68,16 +68,28 @@ def main() -> None:
                     result = detector.process(frame)
                     if result.landmarks is not None:
                         _draw_landmark_groups(frame, result.landmarks)
-                        status = f"EAR: {result.ear:.3f}  MAR: {result.mar:.3f}"
+                        if result.ear is not None and result.mar is not None:
+                            status = f"EAR: {result.ear:.3f}  MAR: {result.mar:.3f}"
+                        else:
+                            status = "Du lieu mot phan (thieu sang?)"
                     else:
                         status = "Khong phat hien khuon mat"
 
                     now = monotonic()
                     if now - last_console_output >= DEMO_CONSOLE_INTERVAL_SECONDS:
-                        if result.has_face:
+                        if (
+                            result.has_face
+                            and result.ear is not None
+                            and result.mar is not None
+                        ):
+                            confidence_str = (
+                                f"{result.confidence:.2f}"
+                                if result.confidence is not None
+                                else "N/A"
+                            )
                             print(
                                 f"EAR={result.ear:.3f} MAR={result.mar:.3f} "
-                                f"confidence={result.confidence}"
+                                f"confidence={confidence_str}"
                             )
                         else:
                             print(status)
